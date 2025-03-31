@@ -28,6 +28,15 @@ async def start(update: Update, context):
         "Чтобы продолжить, выберите раздел ниже:"
     )
     logger.info("Пользователь запустил бота с /start")
+
+    await send_event_to_graspil(
+        user_id=user_id,
+        event_name="bot_start",
+        context=context,
+        first_name=update.effective_user.first_name,
+        username=update.effective_user.username
+    )
+
     await update.message.reply_text(
         "Инициализация...",
         reply_markup=ReplyKeyboardRemove()
@@ -37,17 +46,16 @@ async def start(update: Update, context):
         reply_markup=MAIN_MENU,
         parse_mode="HTML"
     )
-    await send_event_to_graspil(
-        user_id=user_id,
-        event_name="bot_start",
-        context=context,
-        first_name=update.effective_user.first_name,
-        username=update.effective_user.username
-    )
     return ConversationHandler.END
 
 async def essay(update: Update, context):
     user_id = update.effective_user.id
+    await send_event_to_graspil(
+        user_id=user_id,
+        event_name="section_selected",
+        context=context,
+        section="essay"
+    )
     if not can_make_request(user_id, context):
         remaining = get_remaining_requests(user_id, context)
         await update.message.reply_text(
@@ -59,12 +67,6 @@ async def essay(update: Update, context):
     await update.message.reply_text(
         "Выберите тип сочинения:",
         reply_markup=ESSAY_TYPE_MENU,
-    )
-    await send_event_to_graspil(
-        user_id=user_id,
-        event_name="section_selected",
-        context=context,
-        section="essay"
     )
     return ESSAY_TYPE
 
@@ -124,6 +126,14 @@ async def waiting_for_theme(update: Update, context):
     text = update.message.text.strip()
     text_no_emoji = emoji.replace_emoji(text, replace='').lower()
     text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip()
+    theme = update.message.text
+    await send_event_to_graspil(
+        user_id=user_id,
+        event_name="gigachat_request",
+        context=context,
+        request_type="essay",
+        theme=theme[:100]  # Обрезаем длинный текст
+    )
     logger.info(f"waiting_for_theme: Получен текст '{text}', без эмодзи: '{text_no_emoji}'")
 
     if text_no_emoji == "в главное меню":
@@ -181,15 +191,6 @@ async def waiting_for_theme(update: Update, context):
             f"Произошла ошибка при запросе к GigaChat: {str(e)}",
             reply_markup=SECTION_MENU
         )
-
-    theme = update.message.text
-    await send_event_to_graspil(
-        user_id=user_id,
-        event_name="gigachat_request",
-        context=context,
-        request_type="essay",
-        theme=theme[:100]  # Обрезаем длинный текст
-    )
     return ESSAY_RESULT
 
 async def essay_result(update: Update, context):
