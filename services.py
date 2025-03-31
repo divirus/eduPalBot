@@ -29,7 +29,8 @@ async def get_access_token():
     }
     data = {
         "grant_type": "client_credentials",
-        "scope": "GIGACHAT_API_PERS"
+        "scope": "GIGACHAT_API_PERS",
+        "model": "GigaChat-Pro"
     }
 
     async with aiohttp.ClientSession() as session:
