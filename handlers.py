@@ -7,6 +7,7 @@ import logging
 import re
 import emoji
 from payment import is_subscribed, can_make_request, increment_request_count, get_remaining_requests
+from analytics import send_event_to_graspil
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ FINAL_MESSAGE_TEMPLATE = "Объяснение:\n<pre>{}</pre>\nЕсли неп�
 ESSAY_TYPE, WAITING_FOR_THEME, ESSAY_RESULT, EQUATION, MATH_RESULT = range(5)
 
 async def start(update: Update, context):
+    user_id = update.effective_user.id
     user = update.message.from_user.first_name
     welcome_message = (
         f"Привет, {user}! Я бот-помощник для школьников и их родителей.\n"
@@ -35,6 +37,13 @@ async def start(update: Update, context):
         reply_markup=MAIN_MENU,
         parse_mode="HTML"
     )
+    await send_event_to_graspil(
+        user_id=user_id,
+        event_name="bot_start",
+        context=context,
+        first_name=update.effective_user.first_name,
+        username=update.effective_user.username
+    )
     return ConversationHandler.END
 
 async def essay(update: Update, context):
@@ -50,6 +59,12 @@ async def essay(update: Update, context):
     await update.message.reply_text(
         "Выберите тип сочинения:",
         reply_markup=ESSAY_TYPE_MENU,
+    )
+    await send_event_to_graspil(
+        user_id=user_id,
+        event_name="section_selected",
+        context=context,
+        section="essay"
     )
     return ESSAY_TYPE
 
@@ -166,6 +181,15 @@ async def waiting_for_theme(update: Update, context):
             f"Произошла ошибка при запросе к GigaChat: {str(e)}",
             reply_markup=SECTION_MENU
         )
+
+    theme = update.message.text
+    await send_event_to_graspil(
+        user_id=user_id,
+        event_name="gigachat_request",
+        context=context,
+        request_type="essay",
+        theme=theme[:100]  # Обрезаем длинный текст
+    )
     return ESSAY_RESULT
 
 async def essay_result(update: Update, context):
