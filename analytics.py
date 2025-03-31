@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from config import GRASPIL_API_KEY, GRASPIL_API_URL
 from payment import is_subscribed, get_remaining_requests
+from payment import FREE_REQUESTS_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ async def send_event_to_graspil(
     event_name: str,
     context,
     bot_platform: str = "Telegram",
-    max_retries: int = 3,
+    max_retries: int = FREE_REQUESTS_LIMIT,
     retry_delay: float = 1.0,
     **properties
 ):

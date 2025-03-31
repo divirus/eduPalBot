@@ -6,7 +6,7 @@ import pypandoc
 import logging
 import re
 import emoji
-from payment import is_subscribed, can_make_request, increment_request_count, get_remaining_requests
+from payment import is_subscribed, can_make_request, increment_request_count, get_remaining_requests, FREE_REQUESTS_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ async def start(update: Update, context):
     welcome_message = (
         f"Привет, {user}! Я бот-помощник для школьников и их родителей.\n"
         "Я помогу написать сочинение, решить пример и объяснить почему он так решается.\n"
-        "У вас есть 3 бесплатных запроса в день. Для безлимитных запросов оформите подписку.\n"
+        f"У вас есть {FREE_REQUESTS_LIMIT} бесплатных запроса в день. Для безлимитных запросов оформите подписку.\n"
         "Чтобы продолжить, выберите раздел ниже:"
     )
     logger.info("Пользователь запустил бота с /start")
@@ -44,7 +44,7 @@ async def essay(update: Update, context):
     if not can_make_request(user_id, context):
         remaining = get_remaining_requests(user_id, context)
         await update.message.reply_text(
-            "Вы исчерпали лимит бесплатных запросов на сегодня (3 запроса в день). "
+            f"Вы исчерпали лимит бесплатных запросов на сегодня ({FREE_REQUESTS_LIMIT} запроса в день). "
             "Для безлимитных запросов оформите подписку, выбрав 'Subscribe' в главном меню."
         )
         return
@@ -212,7 +212,7 @@ async def math(update: Update, context):
     if not can_make_request(user_id, context):
         remaining = get_remaining_requests(user_id, context)
         await update.message.reply_text(
-            "Вы исчерпали лимит бесплатных запросов на сегодня (3 запроса в день). "
+            f"Вы исчерпали лимит бесплатных запросов на сегодня ({FREE_REQUESTS_LIMIT} запроса в день). "
             "Для безлимитных запросов оформите подписку, выбрав 'Subscribe' в главном меню."
         )
         return
