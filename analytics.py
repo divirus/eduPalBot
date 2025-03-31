@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 import logging
 from datetime import datetime
 from config import GRASPIL_API_KEY, GRASPIL_API_URL
@@ -12,19 +13,21 @@ async def send_event_to_graspil(
     context,
     bot_platform: str = "Telegram",
     max_retries: int = 3,
+    retry_delay: float = 1.0,
     **properties
 ):
     """
-    Отправляет событие в Graspil с автоматическим добавлением данных о подписке и лимитах.
+    Асинхронно отправляет событие в Graspil с обогащенными данными.
     
-    :param user_id: ID пользователя в Telegram.
-    :param event_name: Название события (например, "bot_start").
-    :param context: Контекст бота (для проверки подписки и лимитов).
-    :param bot_platform: Платформа бота (по умолчанию "Telegram").
-    :param max_retries: Количество попыток отправки при ошибках.
-    :param properties: Дополнительные свойства события.
+    Args:
+        user_id: ID пользователя в Telegram.
+        event_name: Название события (например, "bot_start").
+        context: Контекст бота (для доступа к user_data).
+        bot_platform: Платформа бота (по умолчанию "Telegram").
+        max_retries: Максимальное количество попыток отправки.
+        retry_delay: Задержка между попытками в секундах.
+        **properties: Дополнительные свойства события.
     """
-    # Добавляем стандартные свойства
     payload = {
         "user_id": str(user_id),
         "event": event_name,
@@ -53,18 +56,22 @@ async def send_event_to_graspil(
                 ) as response:
                     
                     if response.status == 200:
-                        logger.info(f"Событие '{event_name}' отправлено для user_id={user_id}")
+                        logger.info(f"Событие '{event_name}' отправлено (user_id={user_id})")
                         return True
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"Ошибка {response.status}: {error_text}")
-                        if attempt == max_retries - 1:
-                            return False
-
+                    
+                    error_text = await response.text()
+                    logger.warning(
+                        f"Попытка {attempt + 1}: Graspil вернул {response.status}. "
+                        f"Ошибка: {error_text[:200]}..."  # Обрезаем длинный текст
+                    )
+                    
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                logger.error(f"Попытка {attempt + 1}/{max_retries} не удалась: {str(e)}")
-                if attempt == max_retries - 1:
-                    return False
-                await asyncio.sleep(1)  # Задержка между попытками
+                logger.warning(
+                    f"Попытка {attempt + 1}: Ошибка подключения к Graspil: {str(e)}"
+                )
 
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+
+        logger.error(f"Событие '{event_name}' не отправлено после {max_retries} попыток")
         return False
