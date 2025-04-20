@@ -127,7 +127,7 @@ async def essay_type(update: Update, context):
 
     if text_no_emoji == "объяснить правила":
         await update.message.reply_text(
-            "Пожалуйста, введите автора и название произведения:",
+            "Пожалуйста, опишите, что требуется обьяснить:",
             reply_markup=SECTION_MENU,
             parse_mode="HTML"
         )
@@ -182,45 +182,14 @@ async def waiting_for_theme(update: Update, context):
     context.user_data['essay_theme'] = text
 
     if context.user_data['essay_type'] == "объяснить правила":
-        prompt = f"Представь что ты учитель литературы. Напиши сочинение с кратким содержанием произведения '{text}' на русском языке, языком понятным школьнику."
+        prompt = f"Представь что ты учитель русского языка. Объясни следующие правила '{text}' на русском языке, так чтобы это понял даже ребенок, простыми словами, не используя жаргон и ненормативную лексику."
     else:
-        prompt = f"Представь что ты учитель литературы. Напиши сочинение на тему '{text}' на русском языке, языком понятным школьнику, минимум 1000 символов."
+        prompt = f"Представь что ты ученик средней школы. Напиши сочинение на тему '{text}' на русском языке, грамотно, языком понятным школьнику, , не используя жаргон и ненормативную лексику, минимум 1000 символов."
 
     success = await send_api_request(update, context, prompt)
     if success:
         return ESSAY_RESULT
     return ConversationHandler.END
-
-# async def essay_result(update: Update, context):
-#     text = update.message.text.strip()
-#     text_no_emoji = emoji.replace_emoji(text, replace='').lower()
-#     text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip()
-
-#     if text_no_emoji == "новый запрос":
-#         await essay(update, context)
-#         return ESSAY_TYPE
-#     elif text_no_emoji == "в главное меню":
-#         await update.message.reply_text(
-#             "Возвращаемся в главное меню...",
-#             reply_markup=ReplyKeyboardRemove()
-#         )
-#         await update.message.reply_text(
-#             "Выберите раздел ниже:",
-#             reply_markup=MAIN_MENU,
-#             parse_mode="HTML"
-#         )
-#         return ConversationHandler.END
-#     else:
-#         await update.message.reply_text(
-#             INVALID_CHOICE_MESSAGE,
-#             reply_markup=ReplyKeyboardRemove()
-#         )
-#         await update.message.reply_text(
-#             SELECT_ACTION_MESSAGE,
-#             reply_markup=SECTION_MENU,
-#             parse_mode="HTML"
-#         )
-#     return ESSAY_RESULT
 
 async def math(update: Update, context):
     user_id = update.effective_user.id
@@ -313,45 +282,31 @@ async def waiting_for_math_input(update: Update, context):
 
     math_type = context.user_data['math_type']
     if math_type == "объяснить решение":
-        prompt = f"Объясни решение для '{text}' на русском языке, понятном школьнику."
+        prompt = (
+            f"Представь, что ты учитель математики, который должен объяснить ребенку учебный материал. "
+            f"Объясни подробно следующее '{text}' на русском языке простыми словами понятными школьнику. "
+            f"Используй только простой текст, без любых математических команд (например, $, \\frac, \\sqrt, \\text, \\times, \\cdot, \\[, \\]). "
+            f"Пиши дроби как числитель/знаменатель (например, 21/7). "
+            f"Пиши умножение как * (например, 3*4). "
+            f"Пиши логарифмы как log с основанием в виде нижнего индекса (например, log2(x) вместо log_2(x)). "
+            f"Пиши степени через ^ (например, 2^3). "
+            f"Пиши единицы измерения (например, кг) как обычный текст после чисел с пробелом. "
+            f"Нумеруй шаги как 'Шаг 1:', 'Шаг 2:' и так далее. "
+            f"Каждый шаг должен быть отделён пустой строкой (добавляй \n\n между шагами). "
+            f"Если есть итог, пиши его как 'Итог:' в конце, тоже отделяя пустой строкой. "
+            f"Если указываешь ответ, пиши его как 'Ответ:' на новой строке после 'Итог:'."
+            f"Перед тем как отправить ответ, убедись что даешь правдивую информацию"
+        )
     else:
-        prompt = f"Реши пример '{text}' и предоставь результат на русском языке."
+        prompt = (
+            f"Представь, что ты учитель математики, реши задание по математике '{text}' и предоставь результат на русском языке."
+            f"Перед тем как отправить ответ, убедись что даешь правдивую информацию"
+        )
 
     success = await send_api_request(update, context, prompt)
     if success:
         return MATH_RESULT
     return ConversationHandler.END
-
-# async def math_result(update: Update, context):
-#     text = update.message.text.strip()
-#     text_no_emoji = emoji.replace_emoji(text, replace='').lower()
-#     text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip()
-
-#     if text_no_emoji == "новый запрос":
-#         await math(update, context)
-#         return MATH_TYPE
-#     elif text_no_emoji == "в главное меню":
-#         await update.message.reply_text(
-#             "Возвращаемся в главное меню...",
-#             reply_markup=ReplyKeyboardRemove()
-#         )
-#         await update.message.reply_text(
-#             "Выберите раздел ниже:",
-#             reply_markup=MAIN_MENU,
-#             parse_mode="HTML"
-#         )
-#         return ConversationHandler.END
-#     else:
-#         await update.message.reply_text(
-#             INVALID_CHOICE_MESSAGE,
-#             reply_markup=ReplyKeyboardRemove()
-#         )
-#         await update.message.reply_text(
-#             SELECT_ACTION_MESSAGE,
-#             reply_markup=SECTION_MENU,
-#             parse_mode="HTML"
-#         )
-#     return MATH_RESULT
 
 async def send_api_request(update: Update, context, prompt):
     user_id = update.effective_user.id
