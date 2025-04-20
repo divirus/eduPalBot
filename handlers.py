@@ -82,7 +82,7 @@ async def handle_menu_choice(update: Update, context, text_no_emoji, menu_type):
     
 def format_response(response):
     """
-    Processes a response by removing LaTeX and formatting it for Telegram.
+    Processes a response by removing LaTeX, Markdown, and formatting it for Telegram.
     
     Args:
         response (str): The raw response text.
@@ -90,6 +90,19 @@ def format_response(response):
     Returns:
         str: Formatted text suitable for Telegram with HTML tags.
     """
+    if not response or not isinstance(response, str):
+        return "Ответ пустой или некорректный."
+
+    # Экранирование специальных символов для Telegram
+    response = response.replace('&', '&').replace('<', '<').replace('>', '>')
+
+    # Remove Markdown headers (e.g., ### Header, ## Header, # Header)
+    response = re.sub(r'^\s*#{1,3}\s*(.*?)\s*$', r'\1', response, flags=re.MULTILINE)
+
+    # Remove Markdown bold (**text**) and italic (*text*)
+    response = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', response)  # Convert **text** to <b>text</b>
+    response = re.sub(r'\*(.*?)\*', r'\1', response)  # Remove *text* (italic)
+
     # Remove LaTeX delimiters
     response = re.sub(r'\$\$?(.*?)\$\$?', r'\1', response)  # Remove $...$ and $$...$$
     response = re.sub(r'\\\[', '', response)  # Remove \[
@@ -104,20 +117,29 @@ def format_response(response):
     response = re.sub(r'\\cdot', '*', response)  # Multiplication: \cdot → *
     response = re.sub(r'\\approx', '≈', response)  # Approximately: \approx → ≈
     response = re.sub(r'\\pi', 'π', response)  # Pi: \pi → π
+    response = re.sub(r'\\leq', '≤', response)  # Less than or equal: \leq → ≤
+    response = re.sub(r'\\geq', '≥', response)  # Greater than or equal: \geq → ≥
+    response = re.sub(r'\\sum', 'сумма', response)  # Sum: \sum → сумма
+    response = re.sub(r'\\int', 'интеграл', response)  # Integral: \int → интеграл
     
-    # Replace superscripts
+    # Replace superscripts and subscripts
     response = re.sub(r'\^2', '²', response)  # Square: ^2 → ²
     response = re.sub(r'\^3', '³', response)  # Cube: ^3 → ³
     response = re.sub(r'\^\{(.*?)\}', r'^(\1)', response)  # General powers: ^{n} → ^(n)
+    response = re.sub(r'_\{(.*?)\}', r'_(\1)', response)  # Subscripts: _{n} → _(n)
     
     # Apply HTML formatting for structure
     response = re.sub(r'(Шаг \d+:)', r'<b>\1</b>', response)  # Bold "Шаг 1:"
     response = re.sub(r'(Итог:)', r'<b>\1</b>', response)  # Bold "Итог:"
     response = re.sub(r'(Ответ:)', r'<b>\1</b>', response)  # Bold "Ответ:"
+    response = re.sub(r'(Задание:)', r'<b>\1</b>', response)  # Bold "Задание:"
+    response = re.sub(r'(Решение:)', r'<b>\1</b>', response)  # Bold "Решение:"
     
-    # Replace line breaks with <br> for Telegram
-    response = response.replace('\n\n', '\n\n')
-    response = response.replace('\n', '\n\n')
+    # Normalize multiple newlines to a single double newline
+    response = re.sub(r'\n\s*\n+', '\n\n', response)
+    
+    # Remove leading and trailing newlines
+    response = response.strip('\n')
     
     return response
 
