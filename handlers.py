@@ -79,6 +79,47 @@ async def handle_menu_choice(update: Update, context, text_no_emoji, menu_type):
             parse_mode="HTML"
         )
         return menu_type
+    
+def format_response(response):
+    """
+    Processes a response by removing LaTeX and formatting it for Telegram.
+    
+    Args:
+        response (str): The raw response text.
+    
+    Returns:
+        str: Formatted text suitable for Telegram with HTML tags.
+    """
+    # Remove LaTeX delimiters
+    response = re.sub(r'\$\$?(.*?)\$\$?', r'\1', response)  # Remove $...$ and $$...$$
+    response = re.sub(r'\\\[', '', response)  # Remove \[
+    response = re.sub(r'\\\]', '', response)  # Remove \]
+    response = re.sub(r'\\\(', '', response)  # Remove \(
+    response = re.sub(r'\\\)', '', response)  # Remove \)
+    
+    # Replace LaTeX commands with text equivalents
+    response = re.sub(r'\\frac\{(.*?)\}\{(.*?)\}', r'\1/\2', response)  # Fractions: \frac{a}{b} → a/b
+    response = re.sub(r'\\sqrt\{(.*?)\}', r'√(\1)', response)  # Roots: \sqrt{a} → √(a)
+    response = re.sub(r'\\times', '*', response)  # Multiplication: \times → *
+    response = re.sub(r'\\cdot', '*', response)  # Multiplication: \cdot → *
+    response = re.sub(r'\\approx', '≈', response)  # Approximately: \approx → ≈
+    response = re.sub(r'\\pi', 'π', response)  # Pi: \pi → π
+    
+    # Replace superscripts
+    response = re.sub(r'\^2', '²', response)  # Square: ^2 → ²
+    response = re.sub(r'\^3', '³', response)  # Cube: ^3 → ³
+    response = re.sub(r'\^\{(.*?)\}', r'^(\1)', response)  # General powers: ^{n} → ^(n)
+    
+    # Apply HTML formatting for structure
+    response = re.sub(r'(Шаг \d+:)', r'<b>\1</b>', response)  # Bold "Шаг 1:"
+    response = re.sub(r'(Итог:)', r'<b>\1</b>', response)  # Bold "Итог:"
+    response = re.sub(r'(Ответ:)', r'<b>\1</b>', response)  # Bold "Ответ:"
+    
+    # Replace line breaks with <br> for Telegram
+    response = response.replace('\n\n', '<br><br>')
+    response = response.replace('\n', '<br>')
+    
+    return response
 
 async def essay_result(update: Update, context):
     text = update.message.text
@@ -293,6 +334,7 @@ async def waiting_for_math_input(update: Update, context):
         )
 
     prompt += (
+        f"Не дублируй задание в тексте ответа"
         f"Используй только простой текст, НИ В КОЕМ СЛУЧАЕ НЕ ИСПОЛЬЗУЙ LaTeX, математические команды или символы (например, $, \\frac, \\sqrt, \\text, \\times, \\cdot, \\[, \\], \\int)."
         f"Пиши дроби как числитель/знаменатель (например, 21/7). "
         f"Пиши умножение как * (например, 3*4). "
@@ -331,7 +373,7 @@ async def send_api_request(update: Update, context, prompt):
         if len(response) > 4000:
             response = response[:4000] + "..."
         await update.message.reply_text(
-            f"Ответ:\n{response}",
+            f"Ответ:\n{format_response(response)}",
             reply_markup=SECTION_MENU,
             parse_mode="HTML"
         )
