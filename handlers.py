@@ -372,8 +372,9 @@ async def send_api_request(update: Update, context, prompt):
         response = await retry_query_gigachat(prompt, max_tokens=2048)
         if len(response) > 4000:
             response = response[:4000] + "..."
+        formatted_response = format_response(response)
         await update.message.reply_text(
-            f"Ответ:\n{format_response(response)}",
+            f"Ответ:\n{formatted_response}",
             reply_markup=SECTION_MENU,
             parse_mode="HTML"
         )
