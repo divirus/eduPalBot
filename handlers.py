@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 MAX_MESSAGE_LENGTH = 4000
 LOADING_MESSAGE = "Пожалуйста, дождитесь ответа..."
 FINAL_MESSAGE_TEMPLATE = "Объяснение:\n<pre>{}</pre>\nЕсли непонятно, уточни!"
+INVALID_CHOICE_MESSAGE = "Недопустимый выбор..."
+SELECT_ACTION_MESSAGE = "Выберите действие ниже:"
 
 # Глобальные константы для сообщений
 WELCOME_MESSAGE = (
@@ -47,6 +49,47 @@ async def start(update: Update, context):
         parse_mode="HTML"
     )
     return ConversationHandler.END
+
+async def handle_menu_choice(update: Update, context, text_no_emoji, menu_type):
+    if text_no_emoji == "новый запрос":
+        if menu_type == "essay":
+            await essay(update, context)
+            return ESSAY_TYPE
+        elif menu_type == "math":
+            await math(update, context)
+            return MATH_TYPE
+    elif text_no_emoji == "в главное меню":
+        await update.message.reply_text(
+            "Возвращаемся в главное меню...",
+            reply_markup=ReplyKeyboardRemove()
+        )
+        await update.message.reply_text(
+            "Выберите раздел ниже:",
+            reply_markup=MAIN_MENU,
+            parse_mode="HTML"
+        )
+        return ConversationHandler.END
+    else:
+        await update.message.reply_text(
+            INVALID_CHOICE_MESSAGE,
+            reply_markup=ReplyKeyboardRemove()
+        )
+        await update.message.reply_text(
+            SELECT_ACTION_MESSAGE,
+            reply_markup=SECTION_MENU,
+            parse_mode="HTML"
+        )
+        return menu_type
+
+async def essay_result(update: Update, context):
+    text = update.message.text
+    text_no_emoji = text.replace("➡️ ", "").replace("🔙 ", "")
+    return await handle_menu_choice(update, context, text_no_emoji, "essay")
+
+async def math_result(update: Update, context):
+    text = update.message.text
+    text_no_emoji = text.replace("➡️ ", "").replace("🔙 ", "")
+    return await handle_menu_choice(update, context, text_no_emoji, "math")
 
 async def essay(update: Update, context):
     user_id = update.effective_user.id
@@ -148,36 +191,36 @@ async def waiting_for_theme(update: Update, context):
         return ESSAY_RESULT
     return ConversationHandler.END
 
-async def essay_result(update: Update, context):
-    text = update.message.text.strip()
-    text_no_emoji = emoji.replace_emoji(text, replace='').lower()
-    text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip()
+# async def essay_result(update: Update, context):
+#     text = update.message.text.strip()
+#     text_no_emoji = emoji.replace_emoji(text, replace='').lower()
+#     text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip()
 
-    if text_no_emoji == "новый запрос":
-        await essay(update, context)
-        return ESSAY_TYPE
-    elif text_no_emoji == "в главное меню":
-        await update.message.reply_text(
-            "Возвращаемся в главное меню...",
-            reply_markup=ReplyKeyboardRemove()
-        )
-        await update.message.reply_text(
-            "Выберите раздел ниже:",
-            reply_markup=MAIN_MENU,
-            parse_mode="HTML"
-        )
-        return ConversationHandler.END
-    else:
-        await update.message.reply_text(
-            INVALID_CHOICE_MESSAGE,
-            reply_markup=ReplyKeyboardRemove()
-        )
-        await update.message.reply_text(
-            SELECT_ACTION_MESSAGE,
-            reply_markup=SECTION_MENU,
-            parse_mode="HTML"
-        )
-    return ESSAY_RESULT
+#     if text_no_emoji == "новый запрос":
+#         await essay(update, context)
+#         return ESSAY_TYPE
+#     elif text_no_emoji == "в главное меню":
+#         await update.message.reply_text(
+#             "Возвращаемся в главное меню...",
+#             reply_markup=ReplyKeyboardRemove()
+#         )
+#         await update.message.reply_text(
+#             "Выберите раздел ниже:",
+#             reply_markup=MAIN_MENU,
+#             parse_mode="HTML"
+#         )
+#         return ConversationHandler.END
+#     else:
+#         await update.message.reply_text(
+#             INVALID_CHOICE_MESSAGE,
+#             reply_markup=ReplyKeyboardRemove()
+#         )
+#         await update.message.reply_text(
+#             SELECT_ACTION_MESSAGE,
+#             reply_markup=SECTION_MENU,
+#             parse_mode="HTML"
+#         )
+#     return ESSAY_RESULT
 
 async def math(update: Update, context):
     user_id = update.effective_user.id
@@ -279,36 +322,36 @@ async def waiting_for_math_input(update: Update, context):
         return MATH_RESULT
     return ConversationHandler.END
 
-async def math_result(update: Update, context):
-    text = update.message.text.strip()
-    text_no_emoji = emoji.replace_emoji(text, replace='').lower()
-    text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip()
+# async def math_result(update: Update, context):
+#     text = update.message.text.strip()
+#     text_no_emoji = emoji.replace_emoji(text, replace='').lower()
+#     text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip()
 
-    if text_no_emoji == "новый запрос":
-        await math(update, context)
-        return MATH_TYPE
-    elif text_no_emoji == "в главное меню":
-        await update.message.reply_text(
-            "Возвращаемся в главное меню...",
-            reply_markup=ReplyKeyboardRemove()
-        )
-        await update.message.reply_text(
-            "Выберите раздел ниже:",
-            reply_markup=MAIN_MENU,
-            parse_mode="HTML"
-        )
-        return ConversationHandler.END
-    else:
-        await update.message.reply_text(
-            INVALID_CHOICE_MESSAGE,
-            reply_markup=ReplyKeyboardRemove()
-        )
-        await update.message.reply_text(
-            SELECT_ACTION_MESSAGE,
-            reply_markup=SECTION_MENU,
-            parse_mode="HTML"
-        )
-    return MATH_RESULT
+#     if text_no_emoji == "новый запрос":
+#         await math(update, context)
+#         return MATH_TYPE
+#     elif text_no_emoji == "в главное меню":
+#         await update.message.reply_text(
+#             "Возвращаемся в главное меню...",
+#             reply_markup=ReplyKeyboardRemove()
+#         )
+#         await update.message.reply_text(
+#             "Выберите раздел ниже:",
+#             reply_markup=MAIN_MENU,
+#             parse_mode="HTML"
+#         )
+#         return ConversationHandler.END
+#     else:
+#         await update.message.reply_text(
+#             INVALID_CHOICE_MESSAGE,
+#             reply_markup=ReplyKeyboardRemove()
+#         )
+#         await update.message.reply_text(
+#             SELECT_ACTION_MESSAGE,
+#             reply_markup=SECTION_MENU,
+#             parse_mode="HTML"
+#         )
+#     return MATH_RESULT
 
 async def send_api_request(update: Update, context, prompt):
     user_id = update.effective_user.id

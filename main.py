@@ -46,7 +46,7 @@ def main():
         entry_points=[
             CommandHandler("essay", essay),
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^📝\s*Сочинение$"),
+                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^📝\s*Русский\sязык$"),
                 essay
             ),
         ],
