@@ -14,7 +14,8 @@ from handlers import (
     waiting_for_theme,
     essay_result,
     math,
-    solve_equation,
+    math_type,
+    waiting_for_math_input,
     math_result,
     cancel,
     clear,
@@ -22,7 +23,8 @@ from handlers import (
     ESSAY_TYPE,
     WAITING_FOR_THEME,
     ESSAY_RESULT,
-    EQUATION,
+    MATH_TYPE,
+    WAITING_FOR_MATH_INPUT,
     MATH_RESULT,
 )
 from config import TELEGRAM_TOKEN
@@ -87,10 +89,16 @@ def main():
             ),
         ],
         states={
-            EQUATION: [
+            MATH_TYPE: [
                 MessageHandler(
                     filters.TEXT & ~filters.COMMAND,
-                    solve_equation
+                    math_type
+                ),
+            ],
+            WAITING_FOR_MATH_INPUT: [
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND,
+                    waiting_for_math_input
                 )
             ],
             MATH_RESULT: [
