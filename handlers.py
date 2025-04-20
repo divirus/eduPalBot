@@ -116,8 +116,8 @@ def format_response(response):
     response = re.sub(r'(Ответ:)', r'<b>\1</b>', response)  # Bold "Ответ:"
     
     # Replace line breaks with <br> for Telegram
-    response = response.replace('\n\n', '<br><br>')
-    response = response.replace('\n', '<br>')
+    response = response.replace('\n\n', '\n\n')
+    response = response.replace('\n', '\n\n')
     
     return response
 
