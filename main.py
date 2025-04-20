@@ -84,7 +84,7 @@ def main():
         entry_points=[
             CommandHandler("math", math),
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^🔢\s*Математика$"),
+                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^📐\s*Математика$"),
                 math
             ),
         ],
