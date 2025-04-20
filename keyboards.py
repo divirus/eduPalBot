@@ -3,7 +3,7 @@ from telegram import ReplyKeyboardMarkup
 MAIN_MENU = ReplyKeyboardMarkup(
     [
         ["📚 Русский язык"],
-        ["🔢 Математика"],
+        ["📐 Математика"],
         # ["💳 Subscribe"],
     ],
     resize_keyboard=True
