@@ -46,7 +46,7 @@ def main():
         entry_points=[
             CommandHandler("essay", essay),
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^📝\s*Русский\sязык$"),
+                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^📚\s*Русский\s+язык$"),
                 essay
             ),
         ],
@@ -65,9 +65,7 @@ def main():
             ],
             ESSAY_RESULT: [
                 MessageHandler(
-                    filters.TEXT & ~filters.COMMAND & filters.Regex(
-                        r"^(🔄\s*Новый\s+запрос|🏠\s*В\s+главное\s+меню)$"
-                    ),
+                    filters.TEXT & ~filters.COMMAND & filters.Regex(r"^(➡️\s*Новый\s+запрос|🔙\s*В\s+главное\s+меню)$"),
                     essay_result
                 ),
             ],
@@ -84,7 +82,7 @@ def main():
         entry_points=[
             CommandHandler("math", math),
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^🔢\s*Математика$"),
+                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^📐\s*Математика$"),
                 math
             ),
         ],
@@ -103,9 +101,7 @@ def main():
             ],
             MATH_RESULT: [
                 MessageHandler(
-                    filters.TEXT & ~filters.COMMAND & filters.Regex(
-                        r"^(🔄\s*Новый\s+запрос|🏠\s*В\s+главное\s+меню)$"
-                    ),
+                    filters.TEXT & ~filters.COMMAND & filters.Regex(r"^(➡️\s*Новый\s+запрос|🔙\s*В\s+главное\s+меню)$"),
                     math_result
                 ),
             ],
