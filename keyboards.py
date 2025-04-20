@@ -1,31 +1,36 @@
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import ReplyKeyboardMarkup
 
 MAIN_MENU = ReplyKeyboardMarkup(
     [
-        [KeyboardButton("📝 Русский язык"), KeyboardButton("🔢 Математика")],
-        # [KeyboardButton("Подписка")], пока отключаем
+        ["📚 Русский язык"],
+        ["📐 Математика"],
+        # ["💳 Subscribe"],
     ],
     resize_keyboard=True
 )
 
 SECTION_MENU = ReplyKeyboardMarkup(
-    [[KeyboardButton("🔄 Новый запрос"), KeyboardButton("🏠 В главное меню")]],
+    [
+        ["➡️ Новый запрос"],
+        ["🔙 В главное меню"],
+    ],
     resize_keyboard=True
 )
 
 ESSAY_TYPE_MENU = ReplyKeyboardMarkup(
-    [[KeyboardButton("📚 Объяснить правила"), KeyboardButton("✍️ Написать сочинение")],
-     [KeyboardButton("🔙 Назад")]],
+    [
+        ["📚 Объяснить правила"],
+        ["✍️ Написать сочинение"],
+        ["🔙 Назад"],
+    ],
     resize_keyboard=True
 )
 
 MATH_TYPE_MENU = ReplyKeyboardMarkup(
-    [[KeyboardButton("📚 Объяснить решение"), KeyboardButton("📖 Решебник")],
-     [KeyboardButton("🔙 Назад")]],
-    resize_keyboard=True
-)
-
-MATH_MENU = ReplyKeyboardMarkup(
-    [[KeyboardButton("🏠 В главное меню")]],
+    [
+        ["📚 Объяснить решение"],
+        ["📖 Решебник"],
+        ["🔙 Назад"],
+    ],
     resize_keyboard=True
 )

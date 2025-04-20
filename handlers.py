@@ -50,6 +50,10 @@ async def start(update: Update, context):
     return ConversationHandler.END
 
 async def handle_menu_choice(update: Update, context, text_no_emoji, menu_type):
+    # Normalize input for comparison
+    text_no_emoji = text_no_emoji.strip().lower()
+    logger.info(f"Обработка выбора меню: text_no_emoji='{text_no_emoji}', menu_type='{menu_type}'")
+
     if text_no_emoji == "новый запрос":
         if menu_type == "essay":
             await essay(update, context)
@@ -69,6 +73,7 @@ async def handle_menu_choice(update: Update, context, text_no_emoji, menu_type):
         )
         return ConversationHandler.END
     else:
+        logger.warning(f"Недопустимый выбор: '{text_no_emoji}'")
         await update.message.reply_text(
             INVALID_CHOICE_MESSAGE,
             reply_markup=ReplyKeyboardRemove()
@@ -144,13 +149,21 @@ def format_response(response):
     return response
 
 async def essay_result(update: Update, context):
-    text = update.message.text
-    text_no_emoji = text.replace("➡️ ", "").replace("🔙 ", "")
+    text = update.message.text.strip()
+    # Remove emojis and normalize text
+    text_no_emoji = emoji.replace_emoji(text, replace='').strip().lower()
+    # Remove any known emoji prefixes
+    text_no_emoji = re.sub(r'^(➡️|🔙)\s*', '', text_no_emoji)
+    logger.info(f"essay_result: Получен текст='{text}', text_no_emoji='{text_no_emoji}'")
     return await handle_menu_choice(update, context, text_no_emoji, "essay")
 
 async def math_result(update: Update, context):
-    text = update.message.text
-    text_no_emoji = text.replace("➡️ ", "").replace("🔙 ", "")
+    text = update.message.text.strip()
+    # Remove emojis and normalize text
+    text_no_emoji = emoji.replace_emoji(text, replace='').strip().lower()
+    # Remove any known emoji prefixes
+    text_no_emoji = re.sub(r'^(➡️|🔙)\s*', '', text_no_emoji)
+    logger.info(f"math_result: Получен текст='{text}', text_no_emoji='{text_no_emoji}'")
     return await handle_menu_choice(update, context, text_no_emoji, "math")
 
 async def essay(update: Update, context):
