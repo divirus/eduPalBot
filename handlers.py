@@ -49,11 +49,13 @@ async def start(update: Update, context):
     )
     return ConversationHandler.END
 
-async def handle_menu_choice(update: Update, context, text_no_emoji, menu_type):
-    # Normalize input for comparison
-    text_no_emoji = text_no_emoji.strip().lower()
-    logger.info(f"Обработка выбора меню: text_no_emoji='{text_no_emoji}', menu_type='{menu_type}'")
+def normalize_text(text):
+    text_no_emoji = emoji.replace_emoji(text, replace='')  # Удаляем эмодзи
+    text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip().lower()  # Убираем лишние пробелы и приводим к нижнему регистру
+    return text_no_emoji
 
+async def handle_menu_choice(update, context, text_no_emoji, menu_type):
+    logger.info(f"Обработка выбора меню: text_no_emoji='{text_no_emoji}', menu_type='{menu_type}'")
     if text_no_emoji == "новый запрос":
         if menu_type == "essay":
             await essay(update, context)
@@ -75,11 +77,11 @@ async def handle_menu_choice(update: Update, context, text_no_emoji, menu_type):
     else:
         logger.warning(f"Недопустимый выбор: '{text_no_emoji}'")
         await update.message.reply_text(
-            INVALID_CHOICE_MESSAGE,
+            "Недопустимый выбор...",
             reply_markup=ReplyKeyboardRemove()
         )
         await update.message.reply_text(
-            SELECT_ACTION_MESSAGE,
+            "Выберите действие ниже:",
             reply_markup=SECTION_MENU,
             parse_mode="HTML"
         )
@@ -126,6 +128,8 @@ def format_response(response):
     response = re.sub(r'\\geq', '≥', response)  # Greater than or equal: \geq → ≥
     response = re.sub(r'\\sum', 'сумма', response)  # Sum: \sum → сумма
     response = re.sub(r'\\int', 'интеграл', response)  # Integral: \int → интеграл
+    response = re.sub(r'\\text\{(.*?)\}', r'\1', response)  # Remove \text{...}
+    response = re.sub(r'\\mathrm\{(.*?)\}', r'\1', response)  # Remove \mathrm{...}
     
     # Replace superscripts and subscripts
     response = re.sub(r'\^2', '²', response)  # Square: ^2 → ²
@@ -148,22 +152,16 @@ def format_response(response):
     
     return response
 
-async def essay_result(update: Update, context):
+async def essay_result(update, context):
     text = update.message.text.strip()
-    # Remove emojis and normalize text
-    text_no_emoji = emoji.replace_emoji(text, replace='').strip().lower()
-    # Remove any known emoji prefixes
-    text_no_emoji = re.sub(r'^(➡️|🔙)\s*', '', text_no_emoji)
-    logger.info(f"essay_result: Получен текст='{text}', text_no_emoji='{text_no_emoji}'")
+    text_no_emoji = normalize_text(text)
+    logger.info(f"essay_result: Получен текст='{text}', нормализованный текст='{text_no_emoji}'")
     return await handle_menu_choice(update, context, text_no_emoji, "essay")
 
-async def math_result(update: Update, context):
+async def math_result(update, context):
     text = update.message.text.strip()
-    # Remove emojis and normalize text
-    text_no_emoji = emoji.replace_emoji(text, replace='').strip().lower()
-    # Remove any known emoji prefixes
-    text_no_emoji = re.sub(r'^(➡️|🔙)\s*', '', text_no_emoji)
-    logger.info(f"math_result: Получен текст='{text}', text_no_emoji='{text_no_emoji}'")
+    text_no_emoji = normalize_text(text)
+    logger.info(f"math_result: Получен текст='{text}', нормализованный текст='{text_no_emoji}'")
     return await handle_menu_choice(update, context, text_no_emoji, "math")
 
 async def essay(update: Update, context):
