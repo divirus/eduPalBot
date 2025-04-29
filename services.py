@@ -74,7 +74,7 @@ async def query_gigachat(prompt, max_tokens=2048):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "GigaChat",
+        "model": "GigaChat-Pro",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens
     }
