@@ -1,7 +1,7 @@
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, MessageHandler, ConversationHandler, filters
 from keyboards import MAIN_MENU, SECTION_MENU, ESSAY_TYPE_MENU, MATH_TYPE_MENU
-from services import retry_query_gigachat
+from services import query_ai
 import pypandoc
 import logging
 import re
@@ -402,7 +402,7 @@ async def send_api_request(update: Update, context, prompt):
 
     await update.message.reply_text("Пожалуйста, дождитесь ответа...")
     try:
-        response = await retry_query_gigachat(prompt, max_tokens=2048)
+        response = await query_ai(prompt, max_tokens=2048)  # Замена retry_query_gigachat на query_ai
         if len(response) > 4000:
             response = response[:4000] + "..."
         formatted_response = format_response(response)
@@ -414,7 +414,7 @@ async def send_api_request(update: Update, context, prompt):
         return True
     except Exception as e:
         await update.message.reply_text(
-            f"Произошла ошибка при запросе к GigaChat: {str(e)}",
+            f"Произошла ошибка при запросе к AI: {str(e)}",
             reply_markup=SECTION_MENU
         )
         return False
