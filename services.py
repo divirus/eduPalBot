@@ -129,9 +129,13 @@ async def get_yandex_iam_token():
                 response_text = await response.text()
                 logger.info(f"Статус ответа IAM: {response.status}")
                 logger.info(f"Тело ответа IAM: {response_text}")
+                if response.status == 401:
+                    logger.error(f"Ошибка 401: Недействительный JWT-токен. Проверьте YANDEX_OAUTH_TOKEN. Ответ сервера: {response_text}")
+                    raise aiohttp.ClientError(f"401 Unauthorized: Недействительный JWT-токен")
                 response.raise_for_status()
                 token_data = await response.json()
                 yandex_iam_token = token_data["iamToken"]
+                # Yandex IAM-токены обычно действительны 12 часов, но используем 1 час для безопасности
                 yandex_token_expiry = datetime.now() + timedelta(hours=1)
                 logger.info("Токен Yandex GPT успешно получен")
                 return yandex_iam_token
@@ -154,26 +158,38 @@ async def query_yandexgpt(prompt, max_tokens=2048):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "general",
-        "generationOptions": {
-            "maxTokens": max_tokens,
-            "temperature": 0.1
+        "modelUri": f"gpt://{YANDEX_FOLDER_ID}/yandexgpt-lite",
+        "completionOptions": {
+            "stream": False,
+            "temperature": 0.1,
+            "maxTokens": max_tokens
         },
-        "instructionText": "Ты - учитель-ассистент. Отвечай на русском языке простыми словами, избегай специальных символов и форматирования.",
-        "requestText": prompt
+        "messages": [
+            {
+                "role": "system",
+                "text": "Ты - учитель-ассистент. Отвечай на русском языке простыми словами, избегай специальных символов и форматирования."
+            },
+            {
+                "role": "user",
+                "text": prompt
+            }
+        ]
     }
 
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(
-                YANDEX_API_URL,
+                "https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
                 headers=headers,
                 json=payload,
                 timeout=aiohttp.ClientTimeout(total=600)
             ) as response:
+                response_text = await response.text()
+                logger.info(f"Статус ответа Yandex GPT: {response.status}")
+                logger.info(f"Тело ответа Yandex GPT: {response_text}")
                 if response.status == 200:
                     data = await response.json()
-                    return data["result"]["alternatives"][0]["text"].strip()
+                    return data["result"]["alternatives"][0]["message"]["text"].strip()
                 logger.error(f"Yandex GPT ошибка: {response.status}")
                 return f"Ошибка Yandex GPT: {response.status}"
         except Exception as e:
