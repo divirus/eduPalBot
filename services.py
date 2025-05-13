@@ -112,21 +112,34 @@ async def get_yandex_iam_token():
         return yandex_iam_token
 
     headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {YANDEX_OAUTH_TOKEN}"
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "jwt": YANDEX_OAUTH_TOKEN
     }
     
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.post(YANDEX_IAM_URL, headers=headers) as response:
+            async with session.post(
+                YANDEX_IAM_URL,
+                headers=headers,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as response:
+                response_text = await response.text()
+                logger.info(f"Статус ответа IAM: {response.status}")
+                logger.info(f"Тело ответа IAM: {response_text}")
                 response.raise_for_status()
                 token_data = await response.json()
                 yandex_iam_token = token_data["iamToken"]
                 yandex_token_expiry = datetime.now() + timedelta(hours=1)
                 logger.info("Токен Yandex GPT успешно получен")
                 return yandex_iam_token
-        except Exception as e:
+        except aiohttp.ClientError as e:
             logger.error(f"Yandex IAM token ошибка: {str(e)}")
+            raise
+        except KeyError as e:
+            logger.error(f"Отсутствует ожидаемый ключ в ответе IAM: {str(e)}")
             raise
 
 async def query_yandexgpt(prompt, max_tokens=2048):
@@ -166,12 +179,21 @@ async def query_yandexgpt(prompt, max_tokens=2048):
         except Exception as e:
             logger.error(f"Yandex GPT соединение ошибка: {str(e)}")
             return f"Ошибка соединения: {str(e)}"
+        
+async def retry_query_yandexgpt(prompt, max_tokens=2048, max_retries=3, delay=5):
+    for attempt in range(max_retries):
+        response = await query_yandexgpt(prompt, max_tokens)
+        if "Ошибка" not in response:
+            return response
+        if attempt < max_retries - 1:
+            await asyncio.sleep(delay)
+            logger.info(f"Повтор попытки {attempt + 1} для Yandex GPT")
+    return response
 
 async def query_ai(prompt, max_tokens=2048):
-    """Универсальный метод для запросов к AI"""
     if ACTIVE_AI_MODEL == "gigachat":
         return await retry_query_gigachat(prompt, max_tokens)
     elif ACTIVE_AI_MODEL == "yandexgpt":
-        return await query_yandexgpt(prompt, max_tokens)
+        return await retry_query_yandexgpt(prompt, max_tokens)
     else:
         raise ValueError(f"Неизвестная модель AI: {ACTIVE_AI_MODEL}")
