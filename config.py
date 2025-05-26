@@ -16,7 +16,7 @@ YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completio
 YANDEX_IAM_URL = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
 
 # Model switcher (gigachat | yandexgpt)
-ACTIVE_AI_MODEL = os.getenv("ACTIVE_AI_MODEL", "gigachat")  # Default model
+ACTIVE_AI_MODEL = os.getenv("ACTIVE_AI_MODEL", "yandexgpt")  # Default model
 
 CERT_PATH = "pem/russiantrustedca.pem"  # Путь к сертификату НУЦ Минцифры
 # GRASPIL_API_KEY = os.getenv("GRASPIL_API_KEY")
