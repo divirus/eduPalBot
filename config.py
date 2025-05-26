@@ -12,6 +12,7 @@ GIGACHAT_OAUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 # YandexGPT
 YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
 YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
+YANDEX_IAM_TOKEN = os.getenv("YANDEX_IAM_TOKEN")
 YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 YANDEX_IAM_URL = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
 
