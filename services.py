@@ -1,7 +1,7 @@
 import aiohttp
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from config import YANDEX_OAUTH_TOKEN, YANDEX_FOLDER_ID, YANDEX_API_URL, YANDEX_IAM_URL, ACTIVE_AI_MODEL
 
 logger = logging.getLogger(__name__)
@@ -9,23 +9,49 @@ logger = logging.getLogger(__name__)
 # Глобальные переменные для хранения IAM-токена и времени его истечения
 iam_token = None
 token_expiry = None
+token_lock = asyncio.Lock()  # Блокировка для безопасного обновления токена
 
 async def refresh_iam_token():
     """Обновляет IAM-токен с использованием OAuth-токена."""
+    global iam_token, token_expiry
+    
     if not YANDEX_OAUTH_TOKEN:
         logger.error("YANDEX_OAUTH_TOKEN не установлен. Проверьте .env файл.")
         raise ValueError("YANDEX_OAUTH_TOKEN не установлен. Убедитесь, что он добавлен в .env файл.")
 
     headers = {"Content-Type": "application/json"}
     payload = {"yandexPassportOauthToken": YANDEX_OAUTH_TOKEN}
+    
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.post(YANDEX_IAM_URL, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+            async with session.post(
+                YANDEX_IAM_URL, 
+                headers=headers, 
+                json=payload, 
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as response:
                 if response.status == 200:
                     data = await response.json()
                     new_iam_token = data["iamToken"]
-                    # Предполагаем, что токен действителен 12 часов
-                    new_token_expiry = datetime.now() + timedelta(hours=12)
+                    expires_at_str = data["expiresAt"]
+                    
+                    # Парсим время истечения с учетом часового пояса
+                    try:
+                        # Формат с миллисекундами: 2023-10-19T07:20:30.345Z
+                        expires_at = datetime.strptime(
+                            expires_at_str, 
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ).replace(tzinfo=timezone.utc)
+                    except ValueError:
+                        # Формат без миллисекунд: 2023-10-19T07:20:30Z
+                        expires_at = datetime.strptime(
+                            expires_at_str, 
+                            "%Y-%m-%dT%H:%M:%SZ"
+                        ).replace(tzinfo=timezone.utc)
+                    
+                    # Преобразуем в наивный datetime (без часового пояса)
+                    new_token_expiry = expires_at.replace(tzinfo=None)
+                    
                     logger.info("IAM-токен успешно обновлён")
                     return new_iam_token, new_token_expiry
                 else:
@@ -39,9 +65,32 @@ async def refresh_iam_token():
 async def get_valid_iam_token():
     """Возвращает действующий IAM-токен, обновляя его при необходимости."""
     global iam_token, token_expiry
-    if iam_token is None or datetime.now() >= token_expiry:
-        iam_token, token_expiry = await refresh_iam_token()
-    return iam_token
+    
+    # Текущее время в UTC
+    now = datetime.utcnow()
+    
+    # Если токен существует и еще действителен (с запасом 5 минут)
+    if iam_token and token_expiry and now < token_expiry - timedelta(minutes=5):
+        return iam_token
+    
+    # Если токен требует обновления
+    async with token_lock:
+        # Повторная проверка после получения блокировки
+        if iam_token and token_expiry and now < token_expiry - timedelta(minutes=5):
+            return iam_token
+        
+        try:
+            iam_token, token_expiry = await refresh_iam_token()
+            logger.info(f"Обновлён IAM-токен, действителен до: {token_expiry}")
+            return iam_token
+        except Exception as e:
+            logger.error(f"Критическая ошибка при обновлении IAM-токена: {str(e)}")
+            if iam_token and token_expiry and now < token_expiry:
+                logger.warning("Используется старый IAM-токен, так как обновление не удалось")
+                return iam_token
+            raise
+
+# Остальные функции (query_yandexgpt, retry_query_yandexgpt, query_ai) остаются без изменений
 
 async def query_yandexgpt(prompt, max_tokens=2048):
     """Выполняет запрос к Yandex GPT с использованием действующего IAM-токена."""
