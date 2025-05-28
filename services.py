@@ -63,7 +63,7 @@ async def refresh_iam_token():
             raise
 
 async def get_valid_iam_token():
-    """Возвращает действующий IAM-токен, обновляя его при необходимости."""
+    """Возвращает действующий IAM-токен, обновляем его при необходимости."""
     global iam_token, token_expiry
     
     # Текущее время в UTC
