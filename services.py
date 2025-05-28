@@ -35,6 +35,9 @@ async def refresh_iam_token():
                     new_iam_token = data["iamToken"]
                     expires_at_str = data["expiresAt"]
                     
+                    # Логируем строку времени для диагностики
+                    logger.debug(f"Получено время истечения: {expires_at_str}")
+                    
                     # Парсим время истечения с учетом часового пояса
                     try:
                         # Формат с миллисекундами: 2023-10-19T07:20:30.345Z
@@ -43,11 +46,23 @@ async def refresh_iam_token():
                             "%Y-%m-%dT%H:%M:%S.%fZ"
                         ).replace(tzinfo=timezone.utc)
                     except ValueError:
-                        # Формат без миллисекунд: 2023-10-19T07:20:30Z
-                        expires_at = datetime.strptime(
-                            expires_at_str, 
-                            "%Y-%m-%dT%H:%M:%SZ"
-                        ).replace(tzinfo=timezone.utc)
+                        try:
+                            # Формат с наносекундами: 2025-05-29T06:51:08.603015186Z
+                            # Обрезаем до микросекунд (6 цифр)
+                            if '.' in expires_at_str:
+                                base_time, fraction = expires_at_str.split('.')
+                                fraction = fraction[:6] + 'Z'  # Оставляем только 6 цифр
+                                expires_at_str = f"{base_time}.{fraction}"
+                            expires_at = datetime.strptime(
+                                expires_at_str, 
+                                "%Y-%m-%dT%H:%M:%S.%fZ"
+                            ).replace(tzinfo=timezone.utc)
+                        except ValueError:
+                            # Формат без миллисекунд: 2023-10-19T07:20:30Z
+                            expires_at = datetime.strptime(
+                                expires_at_str, 
+                                "%Y-%m-%dT%H:%M:%SZ"
+                            ).replace(tzinfo=timezone.utc)
                     
                     # Преобразуем в наивный datetime (без часового пояса)
                     new_token_expiry = expires_at.replace(tzinfo=None)
@@ -89,8 +104,6 @@ async def get_valid_iam_token():
                 logger.warning("Используется старый IAM-токен, так как обновление не удалось")
                 return iam_token
             raise
-
-# Остальные функции (query_yandexgpt, retry_query_yandexgpt, query_ai) остаются без изменений
 
 async def query_yandexgpt(prompt, max_tokens=2048):
     """Выполняет запрос к Yandex GPT с использованием действующего IAM-токена."""
