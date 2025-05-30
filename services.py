@@ -117,7 +117,7 @@ async def query_yandexgpt(prompt, max_tokens=2048):
         "modelUri": f"gpt://{YANDEX_FOLDER_ID}/yandexgpt-pro",
         "completionOptions": {"stream": False, "temperature": 0.1, "maxTokens": max_tokens},
         "messages": [
-            {"role": "system", "text": "Ты - учитель. Отвечай на русском языке простыми словами, понятными школьнику, избегай специальных символов и форматирования."},
+            {"role": "system", "text": "Ты - учитель. Ты отлично разбираешься в русском языке, литературе и математике. Отвечай на русском языке простыми словами, понятными школьнику, избегай специальных символов и форматирования."},
             {"role": "user", "text": prompt}
         ]
     }
