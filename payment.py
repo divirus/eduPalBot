@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Константа для лимита бесплатных запросов в день
-FREE_REQUESTS_LIMIT = 10
+FREE_REQUESTS_LIMIT = 20
 
 async def subscribe(update: Update, context):
     """
