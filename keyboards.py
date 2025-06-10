@@ -34,3 +34,10 @@ MATH_TYPE_MENU = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
+
+INPUT_MENU = ReplyKeyboardMarkup(
+    [
+        ["🔙 В главное меню"],
+    ],
+    resize_keyboard=True
+)

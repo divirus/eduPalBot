@@ -1,6 +1,6 @@
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, MessageHandler, ConversationHandler, filters
-from keyboards import MAIN_MENU, SECTION_MENU, ESSAY_TYPE_MENU, MATH_TYPE_MENU
+from keyboards import MAIN_MENU, SECTION_MENU, ESSAY_TYPE_MENU, MATH_TYPE_MENU, INPUT_MENU
 from services import query_ai
 import pypandoc
 import logging
@@ -234,13 +234,13 @@ async def essay_type(update: Update, context):
     if text_no_emoji == "объяснить правила":
         await update.message.reply_text(
             "Пожалуйста, опишите, что требуется объяснить:",
-            reply_markup=SECTION_MENU,
+            reply_markup=INPUT_MENU,
             parse_mode="HTML"
         )
     elif text_no_emoji == "написать сочинение":
         await update.message.reply_text(
             "Пожалуйста, введите тему сочинения:",
-            reply_markup=SECTION_MENU,
+            reply_markup=INPUT_MENU,
             parse_mode="HTML"
         )
     else:
@@ -333,13 +333,13 @@ async def math_type(update: Update, context):
     if text_no_emoji == "объяснить решение":
         await update.message.reply_text(
             "Введите правило или пример, объяснение которого вы бы хотели получить:",
-            reply_markup=SECTION_MENU,
+            reply_markup=INPUT_MENU,
             parse_mode="HTML"
         )
     elif text_no_emoji == "решебник":
         await update.message.reply_text(
             "Введите пример, результат решения которого вы хотели бы получить:",
-            reply_markup=SECTION_MENU,
+            reply_markup=INPUT_MENU,
             parse_mode="HTML"
         )
     else:
