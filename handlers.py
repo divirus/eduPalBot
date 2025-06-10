@@ -30,7 +30,7 @@ REQUEST_LIMIT_MESSAGE = (
     "Для безлимитных запросов оформите подписку, выбрав 'Subscribe' в главном меню."
 )
 
-ESSAY_TYPE, WAITING_FOR_THEME, ESSAY_RESULT, MATH_TYPE, WAITING_FOR_MATH_INPUT, MATH_RESULT = range(6)
+ESSAY_TYPE, WAITING_FOR_THEME, ESSAY_RESULT, MATH_TYPE, WAITING_FOR_MATH_INPUT, MATH_RESULT, CONTINUED_DIALOG = range(7)
 
 async def start(update: Update, context):
     user_id = update.effective_user.id
@@ -54,15 +54,17 @@ def normalize_text(text):
     text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip().lower()  # Убираем лишние пробелы и приводим к нижнему регистру
     return text_no_emoji
 
-async def handle_menu_choice(update, context, text_no_emoji, menu_type):
-    logger.info(f"Обработка выбора меню: text_no_emoji='{text_no_emoji}', menu_type='{menu_type}'")
-    if text_no_emoji == "новый запрос":
-        if menu_type == "essay":
-            await essay(update, context)
-            return ESSAY_TYPE
-        elif menu_type == "math":
-            await math(update, context)
-            return MATH_TYPE
+async def essay_result(update, context):
+    text = update.message.text.strip()
+    text_no_emoji = normalize_text(text)
+    logger.info(f"essay_result: Получен текст='{text}', нормализованный текст='{text_no_emoji}'")
+    
+    if text_no_emoji == "объяснить подробнее":
+        # Отправляем запрос с текстом "Я немного не понял, объясни пожалуйста подробнее"
+        prompt = "Я немного не понял, объясни пожалуйста подробнее."
+        success = await send_api_request(update, context, prompt)
+        if success:
+            return CONTINUED_DIALOG
     elif text_no_emoji == "в главное меню":
         await update.message.reply_text(
             "Возвращаемся в главное меню...",
@@ -75,18 +77,51 @@ async def handle_menu_choice(update, context, text_no_emoji, menu_type):
         )
         return ConversationHandler.END
     else:
-        logger.warning(f"Недопустимый выбор: '{text_no_emoji}'")
+        # Обработка нового запроса
+        context.user_data['essay_theme'] = text
+        if context.user_data['essay_type'] == "объяснить правила":
+            prompt = f"Объясни правила '{text}'."
+        else:
+            prompt = f"Напиши сочинение на тему '{text}'."
+        success = await send_api_request(update, context, prompt)
+        if success:
+            return CONTINUED_DIALOG
+    return CONTINUED_DIALOG
+
+async def math_result(update, context):
+    text = update.message.text.strip()
+    text_no_emoji = normalize_text(text)
+    logger.info(f"math_result: Получен текст='{text}', нормализованный текст='{text_no_emoji}'")
+    
+    if text_no_emoji == "объяснить подробнее":
+        # Отправляем запрос с текстом "Я немного не понял, объясни пожалуйста подробнее"
+        prompt = "Я немного не понял, объясни пожалуйста подробнее."
+        success = await send_api_request(update, context, prompt)
+        if success:
+            return CONTINUED_DIALOG
+    elif text_no_emoji == "в главное меню":
         await update.message.reply_text(
-            "Недопустимый выбор...",
+            "Возвращаемся в главное меню...",
             reply_markup=ReplyKeyboardRemove()
         )
         await update.message.reply_text(
-            "Выберите действие ниже:",
-            reply_markup=SECTION_MENU,
+            "Выберите раздел ниже:",
+            reply_markup=MAIN_MENU,
             parse_mode="HTML"
         )
-        return menu_type
-    
+        return ConversationHandler.END
+    else:
+        # Обработка нового запроса
+        math_type = context.user_data.get('math_type')
+        if math_type == "объяснить решение":
+            prompt = f"Объясни решение '{text}'."
+        else:
+            prompt = f"Реши пример '{text}'."
+        success = await send_api_request(update, context, prompt)
+        if success:
+            return CONTINUED_DIALOG
+    return CONTINUED_DIALOG
+
 def format_response(response):
     """
     Processes a response by removing LaTeX, Markdown, and formatting it for Telegram.
@@ -151,18 +186,6 @@ def format_response(response):
     response = response.strip('\n')
     
     return response
-
-async def essay_result(update, context):
-    text = update.message.text.strip()
-    text_no_emoji = normalize_text(text)
-    logger.info(f"essay_result: Получен текст='{text}', нормализованный текст='{text_no_emoji}'")
-    return await handle_menu_choice(update, context, text_no_emoji, "essay")
-
-async def math_result(update, context):
-    text = update.message.text.strip()
-    text_no_emoji = normalize_text(text)
-    logger.info(f"math_result: Получен текст='{text}', нормализованный текст='{text_no_emoji}'")
-    return await handle_menu_choice(update, context, text_no_emoji, "math")
 
 async def essay(update: Update, context):
     user_id = update.effective_user.id
@@ -240,9 +263,9 @@ async def waiting_for_theme(update: Update, context):
             parse_mode="HTML"
         )
         return ConversationHandler.END
-    elif text_no_emoji == "новый запрос":
+    elif text_no_emoji == "объяснить подробнее":
         await update.message.reply_text(
-            "Выберите тип сочинения...",
+            "Выберите тип сочинения сначала...",
             reply_markup=ReplyKeyboardRemove()
         )
         await update.message.reply_text(
@@ -342,9 +365,9 @@ async def waiting_for_math_input(update: Update, context):
             parse_mode="HTML"
         )
         return ConversationHandler.END
-    elif text_no_emoji == "новый запрос":
+    elif text_no_emoji == "объяснить подробнее":
         await update.message.reply_text(
-            "Выберите тип запроса...",
+            "Выберите тип запроса сначала...",
             reply_markup=ReplyKeyboardRemove()
         )
         await update.message.reply_text(
@@ -354,12 +377,11 @@ async def waiting_for_math_input(update: Update, context):
         )
         return MATH_TYPE
 
-    # Если ввод не является командой меню, отправляем запрос на сервер
     math_type = context.user_data.get('math_type')
     if math_type == "объяснить решение":
         prompt = (
-            f"Ты - учитель математики. Обьясни школьнику учебный материал. "
-            f"Объясни подробно следующее '{text}' на русском языке простыми словами понятными школьнику. Убедись, что обьяснение правильное и без ошибок. "
+            f"Ты - учитель математики. Объясни школьнику учебный материал. "
+            f"Объясни подробно следующее '{text}' на русском языке простыми словами понятными школьнику. Убедись, что объяснение правильное и без ошибок. "
         )
     else:  # math_type == "решебник"
         prompt = (
@@ -404,7 +426,7 @@ async def send_api_request(update: Update, context, prompt):
 
     await update.message.reply_text("Пожалуйста, дождитесь ответа...")
     try:
-        response = await query_ai(prompt, max_tokens=2048)  # Замена retry_query_gigachat на query_ai
+        response = await query_ai(prompt, max_tokens=2048)
         if len(response) > 4000:
             response = response[:4000] + "..."
         formatted_response = format_response(response)

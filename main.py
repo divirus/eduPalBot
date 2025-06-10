@@ -26,6 +26,7 @@ from handlers import (
     MATH_TYPE,
     WAITING_FOR_MATH_INPUT,
     MATH_RESULT,
+    CONTINUED_DIALOG,
 )
 from config import TELEGRAM_TOKEN
 
@@ -65,7 +66,13 @@ def main():
             ],
             ESSAY_RESULT: [
                 MessageHandler(
-                    filters.TEXT & ~filters.COMMAND & filters.Regex(r"^(➡️\s*Новый\s+запрос|🔙\s*В\s+главное\s+меню)$"),
+                    filters.TEXT & ~filters.COMMAND,
+                    essay_result
+                ),
+            ],
+            CONTINUED_DIALOG: [
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND,
                     essay_result
                 ),
             ],
@@ -101,7 +108,13 @@ def main():
             ],
             MATH_RESULT: [
                 MessageHandler(
-                    filters.TEXT & ~filters.COMMAND & filters.Regex(r"^(➡️\s*Новый\s+запрос|🔙\s*В\s+главное\s+меню)$"),
+                    filters.TEXT & ~filters.COMMAND,
+                    math_result
+                ),
+            ],
+            CONTINUED_DIALOG: [
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND,
                     math_result
                 ),
             ],

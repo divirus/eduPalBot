@@ -11,7 +11,7 @@ MAIN_MENU = ReplyKeyboardMarkup(
 
 SECTION_MENU = ReplyKeyboardMarkup(
     [
-        ["➡️ Новый запрос"],
+        ["🔍 Объяснить подробнее"],
         ["🔙 В главное меню"],
     ],
     resize_keyboard=True
