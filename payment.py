@@ -1,23 +1,12 @@
-from datetime import datetime, date
-from telegram import Update, Bot
+from datetime import datetime, date, timedelta
+from telegram import Update
 from analytics import send_ga_event
-from datetime import date, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Константа для лимита бесплатных запросов в день
 FREE_REQUESTS_LIMIT = 20
-
-async def successful_payment(update: Update, context):
-    user_id = update.effective_user.id
-    from database import set_subscribed
-    expiration_date = date.today() + timedelta(days=30)
-    set_subscribed(user_id, expiration_date)
-    await context.bot.send_message(chat_id=user_id, text="Ваша подписка активирована!")
-    
-    # Отправка события в Google Analytics
-    send_ga_event(user_id, "Subscription", "Activated", "Monthly Plan")
 
 async def subscribe(update: Update, context):
     """
@@ -57,14 +46,22 @@ async def successful_payment(update: Update, context):
         context: Контекст бота.
     """
     user_id = update.effective_user.id
-    expiration_date = date.today() + datetime.timedelta(days=30)
-    context.user_data[user_id] = {
+    from database import subscribe_user
+    expiration_date = date.today() + timedelta(days=30)
+    subscribe_user(user_id, expiration_date)
+    if user_id not in context.user_data:
+        context.user_data[user_id] = {}
+    context.user_data[user_id].update({
         "subscribed": True,
         "expiration_date": expiration_date,
-        "requests": {}  # Сбрасываем счётчик запросов при подписке
-    }
-    await context.bot.send_message(chat_id=user_id, text="Ваша подписка активирована! Теперь у вас безлимитные запросы.")
+        "requests": {}  # Сбрасываем счётчик запросов
+    })
+    await context.bot.send_message(
+        chat_id=user_id,
+        text="Ваша подписка активирована! Теперь у вас безлимитные запросы."
+    )
     logger.info(f"Активирована подписка для пользователя {user_id}, срок до {expiration_date}")
+    send_ga_event(user_id, "Subscription", "Activated", "Monthly Plan")
 
 def is_subscribed(user_id, context):
     """
