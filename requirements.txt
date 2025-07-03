@@ -4,4 +4,3 @@ aiohttp
 pypandoc
 emoji
 requests
-sqlite3
