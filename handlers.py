@@ -1,3 +1,5 @@
+from datetime import datetime
+import sqlite3
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, MessageHandler, ConversationHandler, filters
 from keyboards import MAIN_MENU, SECTION_MENU, ESSAY_TYPE_MENU, MATH_TYPE_MENU, INPUT_MENU
@@ -7,6 +9,7 @@ import logging
 import re
 import emoji
 from payment import is_subscribed, can_make_request, increment_request_count, get_remaining_requests, FREE_REQUESTS_LIMIT
+from database import is_subscribed_to_bot, log_request
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +37,12 @@ ESSAY_TYPE, WAITING_FOR_THEME, ESSAY_RESULT, MATH_TYPE, WAITING_FOR_MATH_INPUT, 
 
 async def start(update: Update, context):
     user_id = update.effective_user.id
+    username = update.effective_user.username
+    current_time = datetime.now().isoformat()
+
+    conn = sqlite3.connect('/data/users.db')
+    c = conn.cursor()
+
     user = update.message.from_user.first_name
     welcome_message = WELCOME_MESSAGE.format(user=user, free_requests=FREE_REQUESTS_LIMIT)
     logger.info("Пользователь запустил бота с /start")
@@ -42,6 +51,22 @@ async def start(update: Update, context):
         "Инициализация...",
         reply_markup=ReplyKeyboardRemove()
     )
+
+    # Проверяем, есть ли пользователь
+    c.execute("SELECT first_start_time FROM users WHERE user_id = ?", (user_id,))
+    result = c.fetchone()
+    
+    if result is None:
+        # Новый пользователь
+        c.execute("INSERT INTO users (user_id, username, first_start_time, last_start_time) VALUES (?, ?, ?, ?)",
+                  (user_id, username, current_time, current_time))
+    else:
+        # Существующий пользователь
+        c.execute("UPDATE users SET last_start_time = ? WHERE user_id = ?", (current_time, user_id))
+    
+    conn.commit()
+    conn.close()
+
     await update.message.reply_text(
         welcome_message,
         reply_markup=MAIN_MENU,
@@ -290,6 +315,13 @@ async def waiting_for_theme(update: Update, context):
 
     prompt += " Пожалуйста, не используй никакие специальные символы для форматирования, такие как **, а дай ответ в простом текстовом виде."
     context.user_data['last_prompt'] = prompt
+
+    user_id = update.effective_user.id
+    request_text = prompt
+    request_time = datetime.now().isoformat()
+    increment_request_count(user_id)
+    log_request(user_id, request_text, request_time)
+
     success = await send_api_request(update, context, prompt)
     if success:
         return ESSAY_RESULT
@@ -408,6 +440,13 @@ async def waiting_for_math_input(update: Update, context):
         f"Старайся, иначе получишь в лоб!"
     )
     context.user_data['last_prompt'] = prompt
+
+    user_id = update.effective_user.id
+    request_text = prompt
+    request_time = datetime.now().isoformat()
+    increment_request_count(user_id)
+    log_request(user_id, request_text, request_time)
+
     success = await send_api_request(update, context, prompt)
     if success:
         return MATH_RESULT

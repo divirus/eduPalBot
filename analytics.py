@@ -1,3 +1,4 @@
+import os
 import aiohttp
 import asyncio
 import logging
@@ -5,6 +6,9 @@ from datetime import datetime
 from config import GRASPIL_API_KEY, GRASPIL_API_URL
 from payment import is_subscribed, get_remaining_requests
 from payment import FREE_REQUESTS_LIMIT
+import requests
+
+GOOGLE_ANALYTICS_ID = os.getenv("GOOGLE_ANALYTICS_ID")
 
 logger = logging.getLogger(__name__)
 
@@ -76,3 +80,39 @@ async def send_event_to_graspil(
 
         logger.error(f"Событие '{event_name}' не отправлено после {max_retries} попыток")
         return False
+
+def send_ga_event(user_id, event_category, event_action, event_label=None, event_value=None):
+    """
+    Отправляет событие в Google Analytics через Measurement Protocol.
+    :param user_id: ID пользователя Telegram
+    :param event_category: Категория события (например, "Subscription")
+    :param event_action: Действие (например, "Activated")
+    :param event_label: Метка (опционально, например, "Monthly Plan")
+    :param event_value: Значение (опционально, например, количество запросов)
+    """
+    data = {
+        "v": "1",              # Версия протокола
+        "tid": GOOGLE_ANALYTICS_ID, # Tracking ID
+        "cid": str(user_id),   # Client ID (используем user_id Telegram)
+        "t": "event",          # Тип хита: событие
+        "ec": event_category,  # Категория события
+        "ea": event_action,    # Действие
+        "el": event_label,     # Метка (опционально)
+        "ev": event_value      # Значение (опционально)
+    }
+
+    # Убираем None из словаря
+    payload = {k: v for k, v in data.items() if v is not None}
+
+    try:
+        response = requests.post("https://www.google-analytics.com/collect", data=payload)
+        if response.status_code == 200:
+            print(f"Событие отправлено в GA: {event_category} - {event_action}")
+        else:
+            print(f"Ошибка отправки в GA: {response.status_code}")
+    except Exception as e:
+        print(f"Исключение при отправке в GA: {e}")
+
+# Пример вызова
+if __name__ == "__main__":
+    send_ga_event(12345, "Subscription", "Activated", "Monthly Plan")

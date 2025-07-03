@@ -1,11 +1,23 @@
 from datetime import datetime, date
 from telegram import Update, Bot
+from analytics import send_ga_event
+from datetime import date, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Константа для лимита бесплатных запросов в день
 FREE_REQUESTS_LIMIT = 20
+
+async def successful_payment(update: Update, context):
+    user_id = update.effective_user.id
+    from database import set_subscribed
+    expiration_date = date.today() + timedelta(days=30)
+    set_subscribed(user_id, expiration_date)
+    await context.bot.send_message(chat_id=user_id, text="Ваша подписка активирована!")
+    
+    # Отправка события в Google Analytics
+    send_ga_event(user_id, "Subscription", "Activated", "Monthly Plan")
 
 async def subscribe(update: Update, context):
     """
