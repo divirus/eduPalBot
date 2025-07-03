@@ -19,5 +19,5 @@ YANDEX_IAM_URL = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
 ACTIVE_AI_MODEL = os.getenv("ACTIVE_AI_MODEL", "yandexgpt")  # Default model
 
 CERT_PATH = "pem/russiantrustedca.pem"  # Путь к сертификату НУЦ Минцифры
-# GRASPIL_API_KEY = os.getenv("GRASPIL_API_KEY")
-# GRASPIL_API_URL = "https://api.graspil.com"  # Эндпоинт для отправки событий
+GRASPIL_API_KEY = os.getenv("GRASPIL_API_KEY")
+GRASPIL_API_URL = "https://api.graspil.com"  # Эндпоинт для отправки событий
