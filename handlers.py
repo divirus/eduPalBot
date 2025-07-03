@@ -317,10 +317,9 @@ async def waiting_for_theme(update: Update, context):
     context.user_data['last_prompt'] = prompt
 
     user_id = update.effective_user.id
-    request_text = prompt
     request_time = datetime.now().isoformat()
     increment_request_count(user_id, context)
-    log_request(user_id, request_text, request_time)
+    log_request(user_id, text, request_time)
 
     success = await send_api_request(update, context, prompt)
     if success:
@@ -442,10 +441,9 @@ async def waiting_for_math_input(update: Update, context):
     context.user_data['last_prompt'] = prompt
 
     user_id = update.effective_user.id
-    request_text = prompt
     request_time = datetime.now().isoformat()
     increment_request_count(user_id, context)
-    log_request(user_id, request_text, request_time)
+    log_request(user_id, text, request_time)
 
     success = await send_api_request(update, context, prompt)
     if success:
