@@ -21,3 +21,7 @@ ACTIVE_AI_MODEL = os.getenv("ACTIVE_AI_MODEL", "yandexgpt")  # Default model
 CERT_PATH = "pem/russiantrustedca.pem"  # Путь к сертификату НУЦ Минцифры
 GRASPIL_API_KEY = os.getenv("GRASPIL_API_KEY")
 GRASPIL_API_URL = "https://api.graspil.com"  # Эндпоинт для отправки событий
+
+DB_PATH = os.getenv("DB_PATH", "users.db")
+if not os.path.exists(os.path.dirname(DB_PATH)) and os.path.dirname(DB_PATH):
+    os.makedirs(os.path.dirname(DB_PATH))

@@ -29,6 +29,7 @@ from handlers import (
     CONTINUED_DIALOG,
 )
 from config import TELEGRAM_TOKEN
+from database import check_db_initialized
 
 # Настройка логирования
 logging.basicConfig(
@@ -37,6 +38,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def main():
+    if not check_db_initialized():
+        logger.error("Бот не запущен: база данных не инициализирована")
+        return
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     # Обработчик команды /start

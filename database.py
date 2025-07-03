@@ -2,6 +2,9 @@ import sqlite3
 from datetime import datetime
 import os
 from config import DB_PATH  # Импортируем путь из config.py
+import logging
+
+logger = logging.getLogger(__name__)
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)  # Унифицированный путь
@@ -74,6 +77,26 @@ def unsubscribe_user(user_id):
     c.execute("UPDATE users SET subscribed = 0, subscription_expiration = NULL WHERE user_id = ?", (user_id,))
     conn.commit()
     conn.close()
+
+def check_db_initialized():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        users_table = c.fetchone()
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='requests'")
+        requests_table = c.fetchone()
+        if users_table and requests_table:
+            logger.info("Таблицы 'users' и 'requests' существуют в базе данных")
+            return True
+        else:
+            logger.error("Одна или обе таблицы ('users', 'requests') отсутствуют")
+            return False
+    except sqlite3.Error as e:
+        logger.error(f"Ошибка при проверке базы данных: {e}")
+        return False
+    finally:
+        conn.close()
 
 # Инициализация базы данных и обновление схемы при запуске
 init_db()
