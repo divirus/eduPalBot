@@ -8,8 +8,8 @@ import pypandoc
 import logging
 import re
 import emoji
-from payment import is_subscribed, can_make_request, increment_request_count, get_remaining_requests, FREE_REQUESTS_LIMIT
-from database import is_subscribed_to_bot, log_request
+from payment import can_make_request, increment_request_count, get_remaining_requests, FREE_REQUESTS_LIMIT
+from database import log_request
 
 logger = logging.getLogger(__name__)
 
