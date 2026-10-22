@@ -1,155 +1,151 @@
-import aiohttp
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
-from config import YANDEX_OAUTH_TOKEN, YANDEX_FOLDER_ID, YANDEX_API_URL, YANDEX_IAM_URL, ACTIVE_AI_MODEL
+
+import aiohttp
+
+from config import HF_API_TOKEN, HF_API_URL
 
 logger = logging.getLogger(__name__)
 
-# Глобальные переменные для хранения IAM-токена и времени его истечения
-iam_token = None
-token_expiry = None
-token_lock = asyncio.Lock()  # Блокировка для безопасного обновления токена
+HF_API_TIMEOUT_SECONDS = 120
+HF_TOTAL_TIMEOUT_SECONDS = 180
 
-async def refresh_iam_token():
-    """Обновляет IAM-токен с использованием OAuth-токена."""
-    global iam_token, token_expiry
-    
-    if not YANDEX_OAUTH_TOKEN:
-        logger.error("YANDEX_OAUTH_TOKEN не установлен. Проверьте .env файл.")
-        raise ValueError("YANDEX_OAUTH_TOKEN не установлен. Убедитесь, что он добавлен в .env файл.")
 
-    headers = {"Content-Type": "application/json"}
-    payload = {"yandexPassportOauthToken": YANDEX_OAUTH_TOKEN}
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(
-                YANDEX_IAM_URL, 
-                headers=headers, 
-                json=payload, 
-                timeout=aiohttp.ClientTimeout(total=30)
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    new_iam_token = data["iamToken"]
-                    expires_at_str = data["expiresAt"]
-                    
-                    # Логируем строку времени для диагностики
-                    logger.debug(f"Получено время истечения: {expires_at_str}")
-                    
-                    # Парсим время истечения с учетом часового пояса
-                    try:
-                        # Формат с миллисекундами: 2023-10-19T07:20:30.345Z
-                        expires_at = datetime.strptime(
-                            expires_at_str, 
-                            "%Y-%m-%dT%H:%M:%S.%fZ"
-                        ).replace(tzinfo=timezone.utc)
-                    except ValueError:
-                        try:
-                            # Формат с наносекундами: 2025-05-29T06:51:08.603015186Z
-                            # Обрезаем до микросекунд (6 цифр)
-                            if '.' in expires_at_str:
-                                base_time, fraction = expires_at_str.split('.')
-                                fraction = fraction[:6] + 'Z'  # Оставляем только 6 цифр
-                                expires_at_str = f"{base_time}.{fraction}"
-                            expires_at = datetime.strptime(
-                                expires_at_str, 
-                                "%Y-%m-%dT%H:%M:%S.%fZ"
-                            ).replace(tzinfo=timezone.utc)
-                        except ValueError:
-                            # Формат без миллисекунд: 2023-10-19T07:20:30Z
-                            expires_at = datetime.strptime(
-                                expires_at_str, 
-                                "%Y-%m-%dT%H:%M:%SZ"
-                            ).replace(tzinfo=timezone.utc)
-                    
-                    # Преобразуем в наивный datetime (без часового пояса)
-                    new_token_expiry = expires_at.replace(tzinfo=None)
-                    
-                    logger.info("IAM-токен успешно обновлён")
-                    return new_iam_token, new_token_expiry
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Ошибка при получении IAM-токена: {response.status} - {error_text}")
-                    raise Exception(f"Не удалось получить IAM-токен: {error_text}")
-        except Exception as e:
-            logger.error(f"Ошибка при запросе IAM-токена: {str(e)}")
-            raise
+class HuggingFaceError(RuntimeError):
+    """Постоянная ошибка запроса или ответа Hugging Face."""
 
-async def get_valid_iam_token():
-    """Возвращает действующий IAM-токен, обновляем его при необходимости."""
-    global iam_token, token_expiry
-    
-    # Текущее время в UTC
-    now = datetime.utcnow()
-    
-    # Если токен существует и еще действителен (с запасом 5 минут)
-    if iam_token and token_expiry and now < token_expiry - timedelta(minutes=5):
-        return iam_token
-    
-    # Если токен требует обновления
-    async with token_lock:
-        # Повторная проверка после получения блокировки
-        if iam_token and token_expiry and now < token_expiry - timedelta(minutes=5):
-            return iam_token
-        
-        try:
-            iam_token, token_expiry = await refresh_iam_token()
-            logger.info(f"Обновлён IAM-токен, действителен до: {token_expiry}")
-            return iam_token
-        except Exception as e:
-            logger.error(f"Критическая ошибка при обновлении IAM-токена: {str(e)}")
-            if iam_token and token_expiry and now < token_expiry:
-                logger.warning("Используется старый IAM-токен, так как обновление не удалось")
-                return iam_token
-            raise
 
-async def query_yandexgpt(prompt, max_tokens=2048):
-    """Выполняет запрос к Yandex GPT с использованием действующего IAM-токена."""
-    iam_token = await get_valid_iam_token()
+class RetryableHuggingFaceError(HuggingFaceError):
+    """Временная ошибка Hugging Face, для которой допустим повтор."""
+
+
+def _is_retryable_status(status: int) -> bool:
+    return status in {408, 425, 429} or 500 <= status < 600
+
+
+def _clean_generated_text(text: str) -> str:
+    sentences = text.split(". ")
+    unique_sentences = []
+    for sentence in sentences:
+        if sentence and sentence not in unique_sentences:
+            unique_sentences.append(sentence)
+
+    cleaned_text = ". ".join(unique_sentences)
+    if cleaned_text and not cleaned_text.endswith("."):
+        cleaned_text += "."
+    return cleaned_text
+
+
+async def query_hugging_face(prompt, max_length=150):
+    """Асинхронно запрашивает генерацию текста у Hugging Face."""
     headers = {
-        "Authorization": f"Bearer {iam_token}",
-        "x-folder-id": YANDEX_FOLDER_ID,
-        "Content-Type": "application/json"
+        "Authorization": f"Bearer {HF_API_TOKEN}",
+        "x-wait-for-model": "true",
     }
     payload = {
-        "modelUri": f"gpt://{YANDEX_FOLDER_ID}/yandexgpt",
-        "completionOptions": {"stream": False, "temperature": 0.1, "maxTokens": max_tokens},
-        "messages": [
-            {"role": "system", "text": "Ты - учитель. Ты отлично разбираешься в русском языке, литературе и математике. Отвечай на русском языке простыми словами, понятными школьнику, избегай специальных символов и форматирования."},
-            {"role": "user", "text": prompt}
-        ]
+        "inputs": prompt,
+        "parameters": {"max_length": max_length, "return_full_text": False},
     }
+    logger.info("Hugging Face request started (prompt_length=%d)", len(prompt))
 
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(YANDEX_API_URL, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=600)) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data["result"]["alternatives"][0]["message"]["text"].strip()
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Yandex GPT ошибка: {response.status} - {error_text}")
-                    return f"Ошибка Yandex GPT: {response.status} - {error_text}"
-        except Exception as e:
-            logger.error(f"Ошибка при запросе к Yandex GPT: {str(e)}")
-            return f"Ошибка соединения: {str(e)}"
+    timeout = aiohttp.ClientTimeout(total=HF_API_TIMEOUT_SECONDS)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(HF_API_URL, headers=headers, json=payload) as response:
+                if response.status != 200:
+                    logger.error("Hugging Face request failed (HTTP %s)", response.status)
+                    if _is_retryable_status(response.status):
+                        raise RetryableHuggingFaceError(
+                            f"Временная ошибка Hugging Face (HTTP {response.status})"
+                        )
+                    raise HuggingFaceError(
+                        f"Hugging Face отклонил запрос (HTTP {response.status})"
+                    )
 
-async def retry_query_yandexgpt(prompt, max_tokens=2048, max_retries=3, delay=5):
-    """Повторяет запрос к Yandex GPT в случае ошибки."""
+                try:
+                    result = await response.json()
+                except aiohttp.ClientError as error:
+                    raise RetryableHuggingFaceError(
+                        "Не удалось получить полный ответ Hugging Face"
+                    ) from error
+                except ValueError as error:
+                    raise HuggingFaceError(
+                        "Hugging Face вернул некорректный JSON"
+                    ) from error
+
+                try:
+                    generated_text = result[0]["generated_text"].strip()
+                except (AttributeError, IndexError, KeyError, TypeError) as error:
+                    raise HuggingFaceError(
+                        "Hugging Face вернул ответ неизвестного формата"
+                    ) from error
+
+                if not generated_text:
+                    raise HuggingFaceError("Hugging Face вернул пустой ответ")
+
+                cleaned_text = _clean_generated_text(generated_text)
+                logger.debug(
+                    "Hugging Face response received (length=%d)", len(cleaned_text)
+                )
+                return cleaned_text
+    except HuggingFaceError:
+        raise
+    except asyncio.TimeoutError as error:
+        logger.error("Hugging Face request timed out")
+        raise RetryableHuggingFaceError(
+            "Истекло время ожидания ответа Hugging Face"
+        ) from error
+    except aiohttp.ClientError as error:
+        logger.error("Hugging Face request failed (%s)", type(error).__name__)
+        raise RetryableHuggingFaceError(
+            "Временная ошибка соединения с Hugging Face"
+        ) from error
+
+
+async def retry_query_hugging_face(
+    prompt,
+    max_length=150,
+    max_retries=3,
+    delay=5,
+    total_timeout=HF_TOTAL_TIMEOUT_SECONDS,
+):
+    """Повторяет временные ошибки в рамках общего лимита времени."""
+    if max_retries < 1:
+        raise ValueError("max_retries должен быть не меньше 1")
+    if delay < 0:
+        raise ValueError("delay не может быть отрицательным")
+    if total_timeout <= 0:
+        raise ValueError("total_timeout должен быть больше нуля")
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + total_timeout
+    last_error = None
+
     for attempt in range(max_retries):
-        response = await query_yandexgpt(prompt, max_tokens)
-        if "Ошибка" not in response:
-            return response
-        if attempt < max_retries - 1:
-            await asyncio.sleep(delay)
-            logger.info(f"Повтор попытки {attempt + 1} для Yandex GPT")
-    return response
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            raise RetryableHuggingFaceError(
+                "Превышено общее время ожидания ответа Hugging Face"
+            ) from last_error
 
-async def query_ai(prompt, max_tokens=2048):
-    """Обрабатывает запрос к активной модели AI."""
-    if ACTIVE_AI_MODEL == "yandexgpt":
-        return await retry_query_yandexgpt(prompt, max_tokens)
-    else:
-        raise ValueError(f"Неизвестная модель AI: {ACTIVE_AI_MODEL}")
+        try:
+            return await asyncio.wait_for(
+                query_hugging_face(prompt, max_length),
+                timeout=remaining,
+            )
+        except (RetryableHuggingFaceError, asyncio.TimeoutError) as error:
+            last_error = error
+            if attempt + 1 == max_retries:
+                raise RetryableHuggingFaceError(
+                    "Не удалось получить ответ Hugging Face после повторных запросов"
+                ) from error
+
+            wait_seconds = delay * (2 ** attempt)
+            remaining = deadline - loop.time()
+            if wait_seconds >= remaining:
+                raise RetryableHuggingFaceError(
+                    "Превышено общее время ожидания ответа Hugging Face"
+                ) from error
+
+            logger.info("Retrying Hugging Face request in %s seconds", wait_seconds)
+            await asyncio.sleep(wait_seconds)
