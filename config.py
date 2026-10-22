@@ -1,25 +1,31 @@
 import os
+from pathlib import Path
+
+PROJECT_DIR = Path(__file__).resolve().parent
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-
-# GigaChat
 GIGACHAT_AUTH_KEY = os.getenv("GIGACHAT_AUTH_KEY")
 GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 GIGACHAT_OAUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+CERT_PATH = str(PROJECT_DIR / "pem" / "russiantrustedca.pem")
 
-# YandexGPT
-YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
-YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
-YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
-YANDEX_IAM_URL = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
+# Поддержка старой реализации на Hugging Face до удаления legacy-кода.
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+HF_API_URL = os.getenv(
+    "HF_API_URL",
+    "https://api-inference.huggingface.co/models/ai-forever/rugpt3large_based_on_gpt2",
+)
 
-# Model switcher (gigachat | yandexgpt)
-ACTIVE_AI_MODEL = os.getenv("ACTIVE_AI_MODEL", "yandexgpt")  # Default model
 
-CERT_PATH = str(__import__("pathlib").Path(__file__).resolve().parent / "pem" / "russiantrustedca.pem")  # Путь к сертификату НУЦ Минцифры
+def require_env(*names: str) -> None:
+    """Проверяет наличие обязательных переменных перед запуском приложения."""
+    missing = [name for name in names if not os.getenv(name)]
+    if missing:
+        raise RuntimeError(
+            "Не заданы обязательные переменные окружения: " + ", ".join(missing)
+        )
+
+# Configuration retained for optional analytics and subscription modules.
 GRASPIL_API_KEY = os.getenv("GRASPIL_API_KEY")
-GRASPIL_API_URL = "https://api.graspil.com"  # Эндпоинт для отправки событий
-
+GRASPIL_API_URL = "https://api.graspil.com"
 DB_PATH = os.getenv("DB_PATH", "users.db")
-if not os.path.exists(os.path.dirname(DB_PATH)) and os.path.dirname(DB_PATH):
-    os.makedirs(os.path.dirname(DB_PATH))

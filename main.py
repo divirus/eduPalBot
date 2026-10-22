@@ -7,15 +7,14 @@ from telegram.ext import (
     ConversationHandler,
     filters,
 )
-from handlers import (
+from gigachat.handlers import (
     start,
     essay,
     essay_type,
     waiting_for_theme,
     essay_result,
     math,
-    math_type,
-    waiting_for_math_input,
+    solve_equation,
     math_result,
     cancel,
     clear,
@@ -23,112 +22,62 @@ from handlers import (
     ESSAY_TYPE,
     WAITING_FOR_THEME,
     ESSAY_RESULT,
-    MATH_TYPE,
-    WAITING_FOR_MATH_INPUT,
+    EQUATION,
     MATH_RESULT,
-    CONTINUED_DIALOG,
 )
-from config import TELEGRAM_TOKEN
-from database import check_db_initialized
+from config import TELEGRAM_TOKEN, require_env
+from keyboards import ESSAY_BUTTON, MATH_BUTTON
 
 # Настройка логирования
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 def main():
-    if not check_db_initialized():
-        logger.error("Бот не запущен: база данных не инициализирована")
-        return
+    require_env("TELEGRAM_TOKEN", "GIGACHAT_AUTH_KEY")
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-    # Обработчик команды /start
-    application.add_handler(CommandHandler("start", start))
-
-    # ConversationHandler для "Сочинение"
-    essay_conv = ConversationHandler(
+    conversation = ConversationHandler(
         entry_points=[
+            CommandHandler("start", start),
             CommandHandler("essay", essay),
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^📚\s*Русский\s+язык$"),
-                essay
+                filters.TEXT & ~filters.COMMAND & filters.Regex(rf"^{ESSAY_BUTTON}$"),
+                essay,
+            ),
+            CommandHandler("math", math),
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND & filters.Regex(rf"^{MATH_BUTTON}$"),
+                math,
             ),
         ],
         states={
             ESSAY_TYPE: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    essay_type
-                ),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, essay_type),
             ],
             WAITING_FOR_THEME: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    waiting_for_theme
-                )
+                MessageHandler(filters.TEXT & ~filters.COMMAND, waiting_for_theme),
             ],
             ESSAY_RESULT: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    essay_result
-                ),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, essay_result),
             ],
-            CONTINUED_DIALOG: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    essay_result
-                ),
-            ],
-        },
-        fallbacks=[
-            CommandHandler("cancel", cancel),
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_unexpected_input),
-        ],
-    )
-    application.add_handler(essay_conv)
-
-    # ConversationHandler для "Математика"
-    math_conv = ConversationHandler(
-        entry_points=[
-            CommandHandler("math", math),
-            MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(r"^📐\s*Математика$"),
-                math
-            ),
-        ],
-        states={
-            MATH_TYPE: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    math_type
-                ),
-            ],
-            WAITING_FOR_MATH_INPUT: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    waiting_for_math_input
-                )
+            EQUATION: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, solve_equation),
             ],
             MATH_RESULT: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    math_result
-                ),
-            ],
-            CONTINUED_DIALOG: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    math_result
-                ),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, math_result),
             ],
         },
         fallbacks=[
             CommandHandler("cancel", cancel),
+            CommandHandler("clear", clear),
             MessageHandler(filters.TEXT & ~filters.COMMAND, handle_unexpected_input),
         ],
+        allow_reentry=True,
     )
-    application.add_handler(math_conv)
+    application.add_handler(conversation)
 
     # Обработчики команд /cancel и /clear
     application.add_handler(CommandHandler("cancel", cancel))
