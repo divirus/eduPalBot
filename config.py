@@ -1,6 +1,4 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
@@ -18,7 +16,7 @@ YANDEX_IAM_URL = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
 # Model switcher (gigachat | yandexgpt)
 ACTIVE_AI_MODEL = os.getenv("ACTIVE_AI_MODEL", "yandexgpt")  # Default model
 
-CERT_PATH = "pem/russiantrustedca.pem"  # Путь к сертификату НУЦ Минцифры
+CERT_PATH = str(__import__("pathlib").Path(__file__).resolve().parent / "pem" / "russiantrustedca.pem")  # Путь к сертификату НУЦ Минцифры
 GRASPIL_API_KEY = os.getenv("GRASPIL_API_KEY")
 GRASPIL_API_URL = "https://api.graspil.com"  # Эндпоинт для отправки событий
 
