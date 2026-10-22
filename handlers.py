@@ -41,7 +41,7 @@ async def essay_type(update: Update, context):
     text = update.message.text.lower()
     if text == "назад":
         await update.message.reply_text(
-            "Возвращаемся в главное меню\!",
+            "Возвращаемся в главное меню\\!",
             reply_markup=MAIN_MENU,
             parse_mode='MarkdownV2'
         )
@@ -76,7 +76,7 @@ async def waiting_for_theme(update: Update, context):
 
     if text == "в главное меню":
         await update.message.reply_text(
-            "Возвращаемся в главное меню\!",
+            "Возвращаемся в главное меню\\!",
             reply_markup=MAIN_MENU,
             parse_mode='MarkdownV2'
         )
@@ -97,7 +97,7 @@ async def waiting_for_theme(update: Update, context):
         prompt = f"Напиши сочинение на тему '{text}' на русском языке, понятное школьнику."
 
     await update.message.reply_text(
-        "Пожалуйста, дождитесь ответа\.\.\.",
+        "Пожалуйста, дождитесь ответа\\.\\.\\.",
         parse_mode='MarkdownV2'
     )
     response = await _generate_or_notify_failure(update, prompt, 2048, SECTION_MENU)
@@ -118,7 +118,7 @@ async def essay_result(update: Update, context):
         return ESSAY_TYPE
     elif text == "в главное меню":
         await update.message.reply_text(
-            "Возвращаемся в главное меню\!",
+            "Возвращаемся в главное меню\\!",
             reply_markup=MAIN_MENU,
             parse_mode='MarkdownV2'
         )
@@ -127,7 +127,7 @@ async def essay_result(update: Update, context):
 
 async def math(update: Update, context):
     await update.message.reply_text(
-        "Напиши уравнение, например: '2x + 3 = 7'\.",
+        "Напиши уравнение, например: '2x + 3 = 7'\\.",
         reply_markup=MATH_MENU,
         parse_mode='MarkdownV2'
     )
@@ -137,14 +137,14 @@ async def solve_equation(update: Update, context):
     text = update.message.text.lower()
     if text == "в главное меню":
         await update.message.reply_text(
-            "Возвращаемся в главное меню\!",
+            "Возвращаемся в главное меню\\!",
             reply_markup=MAIN_MENU,
             parse_mode='MarkdownV2'
         )
         return ConversationHandler.END
 
     await update.message.reply_text(
-        "Пожалуйста, дождитесь ответа\.\.\.",
+        "Пожалуйста, дождитесь ответа\\.\\.\\.",
         parse_mode='MarkdownV2'
     )
     prompt = f"Реши уравнение '{text}' пошагово на русском языке. Используй простой язык для школьника."
@@ -166,7 +166,7 @@ async def math_result(update: Update, context):
         return EQUATION
     elif text == "в главное меню":
         await update.message.reply_text(
-            "Возвращаемся в главное меню\!",
+            "Возвращаемся в главное меню\\!",
             reply_markup=MAIN_MENU,
             parse_mode='MarkdownV2'
         )
@@ -185,7 +185,7 @@ async def logic_input(update: Update, context):
     text = update.message.text.lower()
     if text == "в главное меню":
         await update.message.reply_text(
-            "Возвращаемся в главное меню\!",
+            "Возвращаемся в главное меню\\!",
             reply_markup=MAIN_MENU,
             parse_mode='MarkdownV2'
         )
@@ -200,7 +200,7 @@ async def logic_input(update: Update, context):
 
     context.user_data['logic_task'] = text
     await update.message.reply_text(
-        "Пожалуйста, дождитесь ответа\.\.\.",
+        "Пожалуйста, дождитесь ответа\\.\\.\\.",
         parse_mode='MarkdownV2'
     )
     prompt = f"Реши логическую задачу: '{text}'. Дай решение с объяснением на русском языке, понятное школьнику."
@@ -222,7 +222,7 @@ async def logic_result(update: Update, context):
         return LOGIC_INPUT
     elif text == "в главное меню":
         await update.message.reply_text(
-            "Возвращаемся в главное меню\!",
+            "Возвращаемся в главное меню\\!",
             reply_markup=MAIN_MENU,
             parse_mode='MarkdownV2'
         )
@@ -242,7 +242,7 @@ async def handle_question(update: Update, context):
         return LOGIC_INPUT
     else:
         await update.message.reply_text(
-            "Пожалуйста, дождитесь ответа\.\.\.",
+            "Пожалуйста, дождитесь ответа\\.\\.\\.",
             parse_mode='MarkdownV2'
         )
         prompt = f"Объясни на русском языке для школьника: {text}"
@@ -258,7 +258,7 @@ async def handle_question(update: Update, context):
 
 async def cancel(update: Update, context):
     await update.message.reply_text(
-        "Если что — пиши снова\!",
+        "Если что — пиши снова\\!",
         reply_markup=MAIN_MENU,
         parse_mode='MarkdownV2'
     )
