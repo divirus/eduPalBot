@@ -16,11 +16,11 @@ token_expiry = None
 
 
 class GigaChatError(RuntimeError):
-    """Ошибка авторизации или ответа GigaChat, которую не следует повторять."""
+    """A GigaChat authentication or response error that should not be retried."""
 
 
 class RetryableGigaChatError(GigaChatError):
-    """Временная ошибка GigaChat, для которой допустим повторный запрос."""
+    """A transient GigaChat error that can be retried."""
 
 
 def _is_retryable_status(status: int) -> bool:
@@ -28,7 +28,7 @@ def _is_retryable_status(status: int) -> bool:
 
 
 async def get_access_token():
-    """Получает токен доступа через OAuth 2.0"""
+    """Obtain an access token using OAuth 2.0"""
     global access_token, token_expiry
 
     if access_token and token_expiry and datetime.now() < token_expiry:
@@ -81,7 +81,7 @@ async def get_access_token():
             raise GigaChatError("GigaChat вернул некорректный ответ авторизации") from e
 
 async def query_gigachat(prompt, max_tokens=2048):
-    """Асинхронный запрос к GigaChat API"""
+    """Send an asynchronous request to the GigaChat API"""
     global access_token, token_expiry
 
     if not access_token or datetime.now() >= token_expiry:
@@ -158,7 +158,7 @@ async def retry_query_gigachat(
     delay=5,
     total_timeout=GIGACHAT_TOTAL_TIMEOUT_SECONDS,
 ):
-    """Повторяет временные ошибки в рамках общего лимита времени."""
+    """Retry transient failures within the overall time limit."""
     if max_retries < 1:
         raise ValueError("max_retries должен быть не меньше 1")
     if delay < 0:

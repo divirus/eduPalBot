@@ -12,11 +12,11 @@ HF_TOTAL_TIMEOUT_SECONDS = 180
 
 
 class HuggingFaceError(RuntimeError):
-    """Постоянная ошибка запроса или ответа Hugging Face."""
+    """A permanent Hugging Face request or response error."""
 
 
 class RetryableHuggingFaceError(HuggingFaceError):
-    """Временная ошибка Hugging Face, для которой допустим повтор."""
+    """A transient Hugging Face error that can be retried."""
 
 
 def _is_retryable_status(status: int) -> bool:
@@ -37,7 +37,7 @@ def _clean_generated_text(text: str) -> str:
 
 
 async def query_hugging_face(prompt, max_length=150):
-    """Асинхронно запрашивает генерацию текста у Hugging Face."""
+    """Request text generation from Hugging Face asynchronously."""
     headers = {
         "Authorization": f"Bearer {HF_API_TOKEN}",
         "x-wait-for-model": "true",
@@ -109,7 +109,7 @@ async def retry_query_hugging_face(
     delay=5,
     total_timeout=HF_TOTAL_TIMEOUT_SECONDS,
 ):
-    """Повторяет временные ошибки в рамках общего лимита времени."""
+    """Retry transient failures within the overall time limit."""
     if max_retries < 1:
         raise ValueError("max_retries должен быть не меньше 1")
     if delay < 0:

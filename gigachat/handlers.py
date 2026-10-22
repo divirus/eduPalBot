@@ -5,11 +5,11 @@ from gigachat.services import retry_query_gigachat
 import pypandoc
 import logging
 import re
-import emoji  # Добавляем библиотеку emoji
+import emoji  # Import the emoji library
 
 logger = logging.getLogger(__name__)
 
-# Константы для Telegram
+# Telegram constants
 MAX_MESSAGE_LENGTH = 4000
 LOADING_MESSAGE = "Пожалуйста, дождитесь ответа..."
 
@@ -44,9 +44,9 @@ async def essay(update: Update, context):
 async def essay_type(update: Update, context):
     text = update.message.text.strip()
     logger.debug("Получен выбор типа сочинения (длина=%d)", len(text))
-    # Удаляем эмодзи с помощью библиотеки emoji
+    # Remove emoji using the emoji library
     text_no_emoji = emoji.replace_emoji(text, replace='').lower()
-    # Нормализуем пробелы (заменяем множественные пробелы на один)
+    # Normalize whitespace by collapsing consecutive spaces
     text_no_emoji = re.sub(r'\s+', ' ', text_no_emoji).strip()
 
     if text_no_emoji == "назад":

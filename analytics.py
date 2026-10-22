@@ -22,16 +22,16 @@ logger = logging.getLogger(__name__)
 #     **properties
 # ):
 #     """
-#     Асинхронно отправляет событие в Graspil с обогащенными данными.
+#     Send an event to Graspil asynchronously with enriched properties.
     
 #     Args:
-#         user_id: ID пользователя в Telegram.
-#         event_name: Название события (например, "bot_start").
-#         context: Контекст бота (для доступа к user_data).
-#         bot_platform: Платформа бота (по умолчанию "Telegram").
-#         max_retries: Максимальное количество попыток отправки.
-#         retry_delay: Задержка между попытками в секундах.
-#         **properties: Дополнительные свойства события.
+#         user_id: Telegram user ID.
+#         event_name: Event name (for example, "bot_start").
+#         context: Bot context providing access to user_data.
+#         bot_platform: Bot platform (defaults to "Telegram").
+#         max_retries: Maximum number of delivery attempts.
+#         retry_delay: Delay between attempts in seconds.
+#         **properties: Additional event properties.
 #     """
 #     payload = {
 #         "user_id": str(user_id),
@@ -61,47 +61,47 @@ logger = logging.getLogger(__name__)
 #                 ) as response:
                     
 #                     if response.status == 200:
-#                         logger.info(f"Событие '{event_name}' отправлено (user_id={user_id})")
+#                         logger.info(f"Event '{event_name}' sent (user_id={user_id})")
 #                         return True
                     
 #                     error_text = await response.text()
 #                     logger.warning(
-#                         f"Попытка {attempt + 1}: Graspil вернул {response.status}. "
-#                         f"Ошибка: {error_text[:200]}..."  # Обрезаем длинный текст
+#                         f"Attempt {attempt + 1}: Graspil returned {response.status}. "
+#                         f"Error: {error_text[:200]}..."  # Truncate long text
 #                     )
                     
 #             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
 #                 logger.warning(
-#                     f"Попытка {attempt + 1}: Ошибка подключения к Graspil: {str(e)}"
+#                     f"Attempt {attempt + 1}: Graspil connection error: {str(e)}"
 #                 )
 
 #             if attempt < max_retries - 1:
 #                 await asyncio.sleep(retry_delay)
 
-#         logger.error(f"Событие '{event_name}' не отправлено после {max_retries} попыток")
+#         logger.error(f"Event '{event_name}' was not sent after {max_retries} attempts")
 #         return False
 
 def send_ga_event(user_id, event_category, event_action, event_label=None, event_value=None):
     """
-    Отправляет событие в Google Analytics через Measurement Protocol.
-    :param user_id: ID пользователя Telegram
-    :param event_category: Категория события (например, "Subscription")
-    :param event_action: Действие (например, "Activated")
-    :param event_label: Метка (опционально, например, "Monthly Plan")
-    :param event_value: Значение (опционально, например, количество запросов)
+    Send an event to Google Analytics using the Measurement Protocol.
+    :param user_id: Telegram user ID
+    :param event_category: Event category (for example, "Subscription")
+    :param event_action: Event action (for example, "Activated")
+    :param event_label: Optional label (for example, "Monthly Plan")
+    :param event_value: Optional value (for example, the request count)
     """
     data = {
-        "v": "1",              # Версия протокола
+        "v": "1",              # Protocol version
         "tid": GOOGLE_ANALYTICS_ID, # Tracking ID
-        "cid": str(user_id),   # Client ID (используем user_id Telegram)
-        "t": "event",          # Тип хита: событие
-        "ec": event_category,  # Категория события
-        "ea": event_action,    # Действие
-        "el": event_label,     # Метка (опционально)
-        "ev": event_value      # Значение (опционально)
+        "cid": str(user_id),   # Client ID (uses the Telegram user_id)
+        "t": "event",          # Hit type: event
+        "ec": event_category,  # Event category
+        "ea": event_action,    # Action
+        "el": event_label,     # Label (optional)
+        "ev": event_value      # Value (optional)
     }
 
-    # Убираем None из словаря
+    # Remove None values from the dictionary
     payload = {k: v for k, v in data.items() if v is not None}
 
     try:
@@ -113,6 +113,6 @@ def send_ga_event(user_id, event_category, event_action, event_label=None, event
     except Exception as e:
         print(f"Исключение при отправке в GA: {e}")
 
-# Пример вызова
+# Example call
 if __name__ == "__main__":
     send_ga_event(12345, "Subscription", "Activated", "Monthly Plan")

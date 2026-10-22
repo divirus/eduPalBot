@@ -9,7 +9,7 @@ GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions
 GIGACHAT_OAUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 CERT_PATH = str(PROJECT_DIR / "pem" / "russiantrustedca.pem")
 
-# Поддержка старой реализации на Hugging Face до удаления legacy-кода.
+# Support the earlier Hugging Face implementation until legacy code is removed.
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 HF_API_URL = os.getenv(
     "HF_API_URL",
@@ -18,7 +18,7 @@ HF_API_URL = os.getenv(
 
 
 def require_env(*names: str) -> None:
-    """Проверяет наличие обязательных переменных перед запуском приложения."""
+    """Check required environment variables before application startup."""
     missing = [name for name in names if not os.getenv(name)]
     if missing:
         raise RuntimeError(

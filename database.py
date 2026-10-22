@@ -1,13 +1,13 @@
 import sqlite3
 from datetime import datetime
 import os
-from config import DB_PATH  # Импортируем путь из config.py
+from config import DB_PATH  # Import the path from config.py
 import logging
 
 logger = logging.getLogger(__name__)
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)  # Унифицированный путь
+    conn = sqlite3.connect(DB_PATH)  # Shared database path
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users (
                     user_id INTEGER PRIMARY KEY,
@@ -31,11 +31,11 @@ def update_db_schema():
     try:
         c.execute('ALTER TABLE users ADD COLUMN first_start_time TEXT')
     except sqlite3.OperationalError:
-        pass  # Поле уже существует
+        pass  # The column already exists
     try:
         c.execute('ALTER TABLE users ADD COLUMN last_start_time TEXT')
     except sqlite3.OperationalError:
-        pass  # Поле уже существует
+        pass  # The column already exists
     conn.commit()
     conn.close()
 
@@ -98,6 +98,6 @@ def check_db_initialized():
     finally:
         conn.close()
 
-# Инициализация базы данных и обновление схемы при запуске
+# Initialize the database and update its schema at startup
 init_db()
 update_db_schema()

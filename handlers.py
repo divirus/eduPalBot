@@ -4,7 +4,7 @@ from telegram.ext import CommandHandler, MessageHandler, ConversationHandler, fi
 from keyboards import MAIN_MENU, SECTION_MENU, SUBSECTION_MENU, ESSAY_TYPE_MENU, MATH_MENU
 from gigachat.services import retry_query_gigachat
 
-# Состояния для ConversationHandler
+# ConversationHandler states
 ESSAY_TYPE, WAITING_FOR_THEME, ESSAY_RESULT, EQUATION, MATH_RESULT, LOGIC_INPUT, LOGIC_RESULT = range(7)
 logger = logging.getLogger(__name__)
 

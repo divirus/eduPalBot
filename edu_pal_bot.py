@@ -5,7 +5,7 @@ import logging
 from config import TELEGRAM_TOKEN, require_env
 from services import retry_query_hugging_face
 
-# Настройка логирования
+# Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -24,10 +24,10 @@ async def _generate_or_notify_failure(update, prompt, max_length, reply_markup):
         )
         return None
 
-# Состояния для ConversationHandler
+# ConversationHandler states
 ESSAY_TYPE, ESSAY_THEME, EQUATION, LOGIC = range(4)
 
-# Основное меню
+# Main menu
 MAIN_MENU = ReplyKeyboardMarkup(
     [[KeyboardButton("Сочинение"), KeyboardButton("Математика"), KeyboardButton("Логика")]],
     resize_keyboard=True
@@ -43,14 +43,14 @@ SUBSECTION_MENU = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# Меню для выбора типа сочинения
+# Essay type selection menu
 ESSAY_TYPE_MENU = ReplyKeyboardMarkup(
     [[KeyboardButton("Краткое содержание произведения"), KeyboardButton("Сочинение по теме")],
      [KeyboardButton("Назад")]],
     resize_keyboard=True
 )
 
-# Приветствие
+# Greeting
 async def start(update, context):
     user = update.message.from_user.first_name
     welcome_message = (
@@ -60,7 +60,7 @@ async def start(update, context):
     await update.message.reply_text(welcome_message, reply_markup=MAIN_MENU)
     return ConversationHandler.END
 
-# --- Сочинение ---
+# --- Essays ---
 async def essay(update, context):
     await update.message.reply_text(
         "Выберите тип сочинения:",
@@ -105,7 +105,7 @@ async def essay_theme(update, context):
         return ESSAY_TYPE
     
     context.user_data['essay_theme'] = text
-    # Формируем понятный школьнику промпт
+    # Build a prompt suitable for a school student
     if context.user_data['essay_type'].lower() == "краткое содержание произведения":
         prompt = f"Напиши краткое содержание произведения '{text}' на русском языке, понятное школьнику."
     else:
@@ -121,7 +121,7 @@ async def essay_theme(update, context):
     )
     return ConversationHandler.END
 
-# --- Математика ---
+# --- Mathematics ---
 async def math(update, context):
     await update.message.reply_text(
         "Напиши уравнение, например: '2x + 3 = 7'.",
@@ -152,7 +152,7 @@ async def solve_equation(update, context):
     )
     return ConversationHandler.END
 
-# --- Логика ---
+# --- Logic ---
 async def logic(update, context):
     await update.message.reply_text(
         "Логическая задача: 'У Маши 3 конфеты, у Пети на 2 больше. Сколько у Пети?'\n"
@@ -198,7 +198,7 @@ async def solve_logic(update, context):
         )
         return LOGIC
 
-# Обработка кнопок главного меню и общих вопросов
+# Handle main menu buttons and general questions
 async def handle_question(update, context):
     text = update.message.text
     if text == "Сочинение":
@@ -233,12 +233,12 @@ async def handle_question(update, context):
             return
         await update.message.reply_text(f"Ответ:\n{response}", reply_markup=MAIN_MENU)
 
-# Отмена
+# Cancellation
 async def cancel(update, context):
     await update.message.reply_text("Если что — пиши снова!", reply_markup=MAIN_MENU)
     return ConversationHandler.END
 
-# Главная функция
+# Main function
 def main():
     require_env("TELEGRAM_TOKEN", "HF_API_TOKEN")
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()

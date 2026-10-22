@@ -28,7 +28,7 @@ from gigachat.handlers import (
 from config import TELEGRAM_TOKEN, require_env
 from keyboards import ESSAY_BUTTON, MATH_BUTTON
 
-# Настройка логирования
+# Configure logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
@@ -79,14 +79,14 @@ def main():
     )
     application.add_handler(conversation)
 
-    # Обработчики команд /cancel и /clear
+    # Handlers for the /cancel and /clear commands
     application.add_handler(CommandHandler("cancel", cancel))
     application.add_handler(CommandHandler("clear", clear))
 
-    # Обработчик для неожиданного ввода вне ConversationHandler
+    # Handle unexpected input outside ConversationHandler
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_unexpected_input))
 
-    # Запуск бота
+    # Start the bot
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
