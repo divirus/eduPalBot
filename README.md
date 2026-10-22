@@ -1,84 +1,62 @@
 # eduPalBot
 
-**Учебный помощник в Telegram для школьников и их родителей.** Бот помогает разобраться с математической задачей, подготовить сочинение и вспомнить содержание литературного произведения. Ответы формирует GigaChat на русском языке.
+**A Telegram study assistant for school students and their parents.** The bot helps explain math problems, draft essays, and review literary works. GigaChat generates responses in Russian.
 
-## Зачем нужен проект
+## Why this project exists
 
-При самостоятельной учёбе часто не хватает простого объяснения: с чего начать решение, почему получается такой ответ или как раскрыть тему сочинения. Родителям тоже бывает нужна помощь, чтобы объяснить материал понятным ребёнку языком.
+Studying independently often calls for a simple explanation: where to start, why an answer is correct, or how to develop an essay topic. Parents may also need support explaining school material in language their child can understand.
 
-Идея eduPalBot — сделать такую поддержку доступной в привычном чате. Пользователь выбирает раздел, отправляет тему или задачу и получает ответ без установки отдельного приложения. В математике бот запрашивает подробное объяснение хода решения; в литературе помогает подготовить текст и разобраться с произведением.
+eduPalBot brings that support into a familiar chat. Users choose a subject, send a topic or problem, and receive an answer without installing a separate application. For mathematics, the bot requests a detailed explanation of the solution; for literature, it helps draft texts and explore literary works.
 
-Проект задуман как поддержка самостоятельной работы. Сгенерированные решения и литературные сведения стоит проверять: языковая модель может ошибаться.
+The project supports independent learning. Generated solutions and literary facts should be checked, as language models can make mistakes.
 
-## Что умеет текущая версия
+## Current features
 
-| Раздел | Что можно сделать |
+| Feature | What users can do |
 | --- | --- |
-| Сочинение по теме | Отправить тему и получить пример сочинения на русском языке |
-| Краткое содержание | Указать автора и произведение, чтобы получить текст с кратким содержанием |
-| Математика | Отправить уравнение или задачу и получить решение с объяснением шагов |
-| Навигация | Начать новый запрос, переключить раздел или вернуться в главное меню кнопками Telegram |
+| Topic-based essays | Submit a topic and receive a sample essay in Russian |
+| Literary summaries | Provide an author and title to receive a text summarizing the work |
+| Mathematics | Submit an equation or problem and receive a solution with an explanation of the steps |
+| Navigation | Start a new request, switch subjects, or return to the main menu using Telegram buttons |
 
-Например, можно попросить написать сочинение на тему «Почему важно помогать другим», вспомнить содержание «Капитанской дочки» или объяснить решение уравнения `2x + 3 = 7`.
+For example, users can request an essay on “Why helping others matters,” review the plot of *The Captain’s Daughter*, or ask for an explanation of the equation `2x + 3 = 7`.
 
-### Команды
+### Commands
 
-- `/start` — открыть главное меню.
-- `/essay` — перейти к сочинениям и краткому содержанию.
-- `/math` — перейти к математике.
-- `/cancel` — завершить текущий сценарий и вернуться в меню.
-- `/clear` — очистить данные текущего диалога в памяти бота.
+- `/start` — open the main menu.
+- `/essay` — open essays and literary summaries.
+- `/math` — open mathematics.
+- `/cancel` — end the current interaction and return to the menu.
+- `/clear` — clear the current conversation data held in the bot’s memory.
 
-## Как это работает
+## How it works
 
-Основная точка входа — `main.py`. Она запускает Telegram-бота в режиме polling. Обработчики из `gigachat/handlers.py` ведут пользователя по сценарию, формируют учебный запрос и отправляют результат в чат. Модуль `gigachat/services.py` отвечает за OAuth-авторизацию и обращения к GigaChat.
+The main entry point, `main.py`, runs the Telegram bot using polling. Handlers in `gigachat/handlers.py` guide users through each interaction, build educational prompts, and send results back to the chat. The `gigachat/services.py` module handles OAuth authentication and GigaChat API requests.
 
-В запросах настроены таймауты и ограниченные повторы при временных сбоях. Для математических ответов предусмотрена обработка LaTeX через Pandoc; если преобразование недоступно, используется исходный текст.
+Requests have timeouts and bounded retries for transient failures. Mathematical responses can be processed through Pandoc to convert LaTeX; if conversion is unavailable, the original text is used.
 
-Стек: Python, `python-telegram-bot`, `aiohttp`, GigaChat, `pypandoc` и `emoji`.
+Built with Python, `python-telegram-bot`, `aiohttp`, GigaChat, `pypandoc`, and `emoji`.
 
-## Запуск
+## Additional and historical modules
 
-Потребуются Python 3.10 или новее, токен Telegram-бота и ключ авторизации GigaChat. Для преобразования LaTeX также нужен установленный Pandoc.
+The main implementation uses GigaChat. The repository also retains:
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-python -m pip install -r requirements.txt
-```
+- `edu_pal_bot.py` and `services.py` — a standalone Hugging Face implementation. Availability of its legacy endpoint depends on the provider.
+- `handlers.py` — alternative conversation handlers.
+- `database.py`, `payment.py`, and `analytics.py` — storage, subscription, and analytics modules from an earlier implementation.
 
-Задайте переменные окружения в терминале или настройках окружения развёртывания:
+Subscriptions, SQLite request tracking, and analytics are not connected to the current `main.py` entry point.
 
-```bash
-export TELEGRAM_TOKEN="your_telegram_bot_token"
-export GIGACHAT_AUTH_KEY="your_gigachat_authorization_key"
-python main.py
-```
-
-Названия переменных приведены в `.env.example`. Приложение читает окружение процесса и не загружает `.env` автоматически. При отсутствии обязательных переменных запуск завершается с сообщением об ошибке.
-
-В каталоге `pem/` находятся публичные корневые сертификаты для HTTPS-соединения с GigaChat.
-
-## Дополнительные и исторические модули
-
-Основной сценарий использует GigaChat. В репозитории также сохранены:
-
-- `edu_pal_bot.py` и `services.py` — отдельная реализация помощника через Hugging Face. Для запуска нужны `TELEGRAM_TOKEN` и `HF_API_TOKEN`; адрес сервиса можно переопределить через `HF_API_URL`. Работоспособность старого адреса зависит от доступности сервиса у провайдера.
-- `handlers.py` — альтернативные обработчики диалога.
-- `database.py`, `payment.py` и `analytics.py` — модули хранения данных, подписок и аналитики из предыдущей реализации.
-
-Подписки, учёт запросов в SQLite и аналитика не подключены к текущей точке входа `main.py`.
-
-## Проверки
+## Checks
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Тесты проверяют повторы временных ошибок, прекращение повторов при постоянных ошибках, общий таймаут и импорт точек входа. Они не обращаются к реальным API; для проверки полного сценария нужен запуск с действующими ключами.
+Tests cover transient failure retries, stopping retries on permanent errors, the overall timeout, and entry point imports. They do not call live APIs; end-to-end verification requires valid credentials.
 
-## Работа с ключами и данными
+## Credentials and data
 
-Передавайте ключи через переменные окружения или секреты платформы развёртывания. Не добавляйте в Git токены, локальные базы данных и логи. Эти файлы исключены через `.gitignore`; тексты запросов и тела ответов провайдера не должны записываться в логи.
+Provide credentials through environment variables or deployment platform secrets. Keep tokens, local databases, and logs out of Git. These files are excluded through `.gitignore`; request text and provider response bodies must not be written to logs.
 
-Пользовательский текст отправляется в GigaChat для генерации ответа. Не включайте в запросы пароли, ключи доступа и другие чувствительные данные. Если ключ попал в историю Git, его следует отозвать у провайдера и заменить: удаление из репозитория само по себе не прекращает его действие.
+User text is sent to GigaChat to generate responses. Do not include passwords, access keys, or other sensitive information in requests. If a credential enters Git history, revoke and replace it with the provider: removing it from the repository does not invalidate it.
